@@ -34,6 +34,12 @@ for (const width of [1360, 390]) {
         await page.waitForTimeout(300);
         const [sw, iw] = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
         expect(sw).toBeLessThanOrEqual(iw);
+        // body has overflow-x:clip (from the reference), which hides overflow from scrollWidth; check elements too.
+        const poking = await page.evaluate(() => [...document.querySelectorAll('main *, footer *')]
+          .filter((e) => !e.closest('.scroll,.tabs,.rail,.leaflet-container,.vh,.skip,svg'))
+          .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > window.innerWidth + 1; })
+          .map((e) => `${e.tagName}.${e.getAttribute('class')}`));
+        expect(poking).toEqual([]);
         expect(errors).toEqual([]);
       });
     }
@@ -173,4 +179,22 @@ test('share link round trip opens a read-only copy that can be saved', async ({ 
   await expect(other.getByRole('heading', { level: 1 })).toHaveText('Jaipur getaway');
   await other.getByRole('button', { name: 'Save a copy to my trips' }).click();
   await expect(other).toHaveURL(/\/trips\/[^/]+\/overview$/);
+});
+
+test('wizard builds a two-stop trip and persists it after an edit', async ({ page }) => {
+  await offline(page);
+  await page.goto('/new');
+  await page.getByRole('button', { name: /^Jaipur/ }).click();
+  await page.getByRole('button', { name: /^Udaipur/ }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('Start date').fill('2026-12-16');
+  await expect(page.getByText('Recommended for this route: 6–8 days.')).toBeVisible();
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('Trip name').fill('Rajasthan loop');
+  await page.getByRole('button', { name: 'Create my trip' }).click();
+  await expect(page).toHaveURL(/\/trips\/[^/]+\/itinerary$/);
+  await page.getByRole('button', { name: /^Day 4/ }).click();
+  await expect(page.locator('.tl .bt').first()).toHaveText('Travel to Udaipur');
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Rajasthan loop');
 });

@@ -232,3 +232,6 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 @media(max-width:700px){.dayb{min-width:0}.main{padding-left:16px;padding-right:16px}.sitefoot{margin-left:16px;margin-right:16px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{.sitefoot,.toast,.skip{display:none!important}}
+/* Compare: the reference's two-column grid has no breakpoint; stack it on narrow screens */
+@media(max-width:960px){.cmpgrid{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:600px){.cmprow{grid-template-columns:64px minmax(0,1fr) auto!important;gap:10px!important}.cmprow h3{font-size:17px}}
