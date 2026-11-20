@@ -1,17 +1,18 @@
 import { BCATS } from '../data/constants';
-import { D } from '../data/destinations';
+import { inrOf } from './currency';
+import { destView } from './dest';
 import { isAct, travellers } from './schedule';
-import type { Budget, BudgetKey, Day, Expense, Prefs, Trip } from './types';
+import type { Budget, BudgetKey, Day, DestRecord, Expense, Prefs, Trip } from './types';
 import { r500, sum } from './util';
 
-type BudgetInput = { travelers: string[]; prefs?: Partial<Prefs>; plan: Pick<Day, 'dest' | 'items'>[] };
+type BudgetInput = { travelers: string[]; prefs?: Partial<Prefs>; plan: Pick<Day, 'dest' | 'items'>[]; destRecords?: Record<string, DestRecord> };
 
 export function estBudget(t: BudgetInput): Budget {
   const n = travellers(t), tier = t.prefs?.tier ?? 1, rooms = Math.ceil(n / 2);
   const b: Budget = { travel: 0, stay: 0, food: 0, local: 0, act: 0, shop: 0, misc: 0 };
   t.plan.forEach((day, i) => {
-    const d = D[day.dest];
-    if (!d) return;
+    const d = destView(t, day.dest);
+    if (!d?.cost) return; // no honest cost basis: the user enters their own figures
     if (i < t.plan.length - 1 || t.plan.length === 1) b.stay += d.cost.stay[tier] * rooms;
     b.food += d.cost.food[tier] * n;
     b.local += d.cost.local[tier] * n;
@@ -25,7 +26,7 @@ export function estBudget(t: BudgetInput): Budget {
 }
 
 export const plannedTotal = (t: Pick<Trip, 'budget'>) => sum(BCATS, ([k]) => t.budget[k]);
-export const spentBy = (t: Pick<Trip, 'expenses'>, k: BudgetKey) => sum(t.expenses.filter((e) => e.cat === k), (e) => e.amt);
+export const spentBy = (t: Pick<Trip, 'expenses'>, k: BudgetKey) => sum(t.expenses.filter((e) => e.cat === k), inrOf);
 
 /** Net balance per traveller: positive means they are owed money. */
 export function balances(travelers: string[], expenses: Expense[]): number[] {
@@ -34,8 +35,9 @@ export function balances(travelers: string[], expenses: Expense[]): number[] {
   for (const e of expenses) {
     const among = (e.among?.length ? e.among : travelers.map((_, i) => i)).filter((i) => i < n);
     if (!among.length) continue;
-    bal[e.paid] = (bal[e.paid] || 0) + e.amt;
-    for (const i of among) bal[i] -= e.amt / among.length;
+    const amt = inrOf(e);
+    bal[e.paid] = (bal[e.paid] || 0) + amt;
+    for (const i of among) bal[i] -= amt / among.length;
   }
   return bal;
 }

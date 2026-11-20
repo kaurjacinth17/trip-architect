@@ -55,6 +55,8 @@ export interface Place {
   must: boolean;
   hidden: boolean;
   wd: number | null;
+  /** Google place ID when this place comes from live data (its name `n` is then transient, never stored). */
+  gid?: string;
 }
 
 export interface Dest extends DestRaw {
@@ -68,7 +70,12 @@ export interface LatLng {
 
 export interface Item {
   id: string;
+  /** Curated place id ("jaipur:hawa") */
   pid: string | null;
+  /** Google place ID. Google names are never stored: `t` stays empty unless the user types a title. */
+  gid?: string;
+  /** When lat/lng were fetched from Google (Places coordinates may be cached for at most 30 days). */
+  coordsFetchedAt?: number;
   t: string;
   cat: Cat;
   /** start, minutes after midnight */
@@ -102,7 +109,12 @@ export interface Prefs {
 
 export interface Expense {
   id: string;
+  /** Amount in `cur` (INR when absent) */
   amt: number;
+  cur?: string;
+  /** Amount in INR, fixed at entry time with the rate of `fxDate` */
+  inr?: number;
+  fxDate?: string;
   cat: BudgetKey;
   date: string;
   paid: number;
@@ -162,6 +174,46 @@ export interface Trip {
   updated: number;
   sample?: boolean;
   touched?: boolean;
+  /** Non-curated destinations used by this trip, keyed like `dests` entries ("g:…" or "c:…"). */
+  destRecords?: Record<string, DestRecord>;
+  /** Default currency for entering expenses (INR unless the trip is abroad). Totals are always INR. */
+  currency?: string;
+}
+
+/* ---------------------------------------------------------------------------------------- destinations */
+
+export type DestKind = 'curated' | 'google' | 'custom';
+export type DestType = 'metro' | 'tier2' | 'hill' | 'beach' | 'pilgrimage' | 'wildlife' | 'other';
+export interface CostTiers { stay: [number, number, number]; food: [number, number, number]; local: [number, number, number] }
+export interface MonthClimate { tmax: number; tmin: number; rainMm: number; rainDays: number }
+
+/**
+ * A destination that isn't one of the 8 curated guides. Stores only what the terms allow:
+ * the Google place ID, the geographic name and region (judgement call, see NOTES.md), coordinates with
+ * `coordsFetchedAt` (max 30 days), our own computed/entered data, and open data (Open-Meteo climate, CC BY 4.0).
+ */
+export interface DestRecord {
+  key: string;
+  kind: 'google' | 'custom';
+  placeId?: string;
+  name: string;
+  region?: string;
+  country?: string;
+  countryCode?: string;
+  center: { lat: number; lng: number } | null;
+  viewport?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } } | null;
+  coordsFetchedAt?: number;
+  googleTypes?: string[];
+  type: DestType;
+  timezone?: string;
+  currency: string;
+  /** Monthly climate normals (Open-Meteo), index 0 = January */
+  climate?: (MonthClimate | null)[] | null;
+  climatePeriod?: string;
+  /** User-chosen recommended stay, if any */
+  days?: [number, number];
+  /** User-entered (abroad, or types without a curated basis) daily costs, INR, per room / per person */
+  cost?: CostTiers | null;
 }
 
 export type Level = 'alert' | 'caution' | 'tip';

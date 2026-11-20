@@ -1,7 +1,7 @@
 // Timing and day-layout helpers. These mutate the Day passed in (the store and the fixes always
 // hand them a cloned trip), mirroring the reference functions one-for-one.
 import { NONACT, paceOf } from '../data/constants';
-import { D } from '../data/destinations';
+import { destView } from './dest';
 import { geo, km, nnOrder, travelMin, trm } from './geo';
 import type { Day, Item, Place, Trip } from './types';
 import { sum, uid, up15, up5 } from './util';
@@ -11,6 +11,13 @@ export const travellers = (t: Pick<Trip, 'travelers'>) => Math.max(1, t.traveler
 export const sortDay = (day: Day) => day.items.sort((a, b) => a.s - b.s);
 
 export function itemFromPlace(p: Place, s?: number): Item {
+  if (p.gid) {
+    // Live Google place: store the place ID and (for ≤30 days) its coordinates, never its name or area.
+    return {
+      id: uid(), pid: null, gid: p.gid, t: '', cat: p.cat, s: s ?? 540, d: p.d, c: p.c, lat: p.lat, lng: p.lng, coordsFetchedAt: Date.now(),
+      area: '', dest: p.dest, pri: p.must ? 'must' : 'nice', n: '', done: false,
+    };
+  }
   return {
     id: uid(), pid: p.pid, t: p.n, cat: p.cat, s: s ?? 540, d: p.d, c: p.c, lat: p.lat, lng: p.lng,
     area: p.area, dest: p.dest, pri: p.must ? 'must' : 'nice', n: '', done: false,
@@ -154,9 +161,8 @@ export function lightest(t: Trip, exclude: number, dest?: string | null): number
 }
 
 /** Centre of today's mapped activities, or the destination centre. */
-export function dayCentre(day: Day): { lat: number; lng: number } | null {
+export function dayCentre(day: Day, t?: Pick<Trip, 'destRecords'>): { lat: number; lng: number } | null {
   const c = dayStats(day).acts.filter(geo) as (Item & { lat: number; lng: number })[];
   if (c.length) return { lat: sum(c, (x) => x.lat) / c.length, lng: sum(c, (x) => x.lng) / c.length };
-  const d = D[day.dest];
-  return d ? { lat: d.center[0], lng: d.center[1] } : null;
+  return destView(t, day.dest)?.center || null;
 }

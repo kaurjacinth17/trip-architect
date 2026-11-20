@@ -1,6 +1,6 @@
 // One-click fixes, ported from the reference `FIXES`. Each takes a trip and returns a NEW trip plus a
 // toast message, or `message: null` when nothing could be done (the store then discards the change).
-import { D } from '../data/destinations';
+import { destView } from './dest';
 import {
   cascade, cascadeOrdered, customItem, dayStats, findItem, lightest, placeOnDay, pullItem, routeOrder, sortDay,
 } from './schedule';
@@ -41,7 +41,7 @@ const impl: { [A in TripFix['a']]: Impl<A> } = {
     const prev = day.items[i - 1];
     const b = day.items[i];
     const s = prev ? prev.s + prev.d : b.s;
-    day.items.splice(i, 0, customItem({ t: `Travel to ${b.area || (b.dest && D[b.dest]?.name) || 'next stop'}`, cat: 'transit', s: up5(s), d: f.v, dest: b.dest }));
+    day.items.splice(i, 0, customItem({ t: `Travel to ${b.area || destView(t, b.dest)?.name || 'next stop'}`, cat: 'transit', s: up5(s), d: f.v, dest: b.dest }));
     cascadeOrdered(day);
     return 'Travel block added';
   },

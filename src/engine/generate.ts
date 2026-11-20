@@ -1,11 +1,13 @@
 // Starter-itinerary generator, ported from the reference `scorePlace` / `allocDays` / `genPlan` / `buildTrip`.
 import { paceOf } from '../data/constants';
 import { D, PL } from '../data/destinations';
+import { destName, destView } from './dest';
 import { estBudget } from './budget';
 import { geo, km, travelMin } from './geo';
 import { genPack } from './packing';
+import { pickLunches, type LivePlace } from './livePool';
 import { cascade, customItem, itemFromPlace, sortDay } from './schedule';
-import type { Day, Item, PaceKey, Place, Prefs, Trip } from './types';
+import type { Day, DestRecord, Item, PaceKey, Place, Prefs, Trip } from './types';
 import { isoDate, r500, sum, uid, up15 } from './util';
 
 const num = (v: number | undefined) => (v == null ? NaN : v);
@@ -29,9 +31,9 @@ export function scorePlace(p: Place, pr: Partial<Prefs>): number {
 }
 
 /** Split `days` across destinations in proportion to each one's minimum recommended stay. */
-export function allocDays(dests: string[], days: number): string[] {
+export function allocDays(dests: string[], days: number, records?: Record<string, DestRecord>): string[] {
   if (dests.length === 1) return Array(days).fill(dests[0]);
-  const w = dests.map((id) => (D[id] ? D[id].days[0] : 2));
+  const w = dests.map((id) => destView({ destRecords: records }, id)?.days[0] ?? 2);
   const tot = sum(w);
   const alloc = w.map((x) => Math.max(1, Math.round((x / tot) * days)));
   while (sum(alloc) > days) { const i = alloc.indexOf(Math.max(...alloc)); alloc[i]--; }
@@ -39,22 +41,31 @@ export function allocDays(dests: string[], days: number): string[] {
   return dests.flatMap((id, i) => Array(alloc[i]).fill(id));
 }
 
-interface GenInput { dests: string[]; days: number; pace: PaceKey | string; prefs?: Partial<Prefs> }
+interface GenInput {
+  dests: string[];
+  days: number;
+  pace: PaceKey | string;
+  prefs?: Partial<Prefs>;
+  destRecords?: Record<string, DestRecord>;
+  /** Place pools for destinations without a curated guide (live Famous attractions, ranked). */
+  pools?: Record<string, Place[]>;
+}
 interface Scored { p: Place; s: number }
 
 export function genPlan(t: GenInput): { plan: Day[]; wish: Item[] } {
   const pr = t.prefs || {};
   const pace = paceOf(t.pace);
-  const map = allocDays(t.dests, t.days);
+  const map = allocDays(t.dests, t.days, t.destRecords);
   const plan: Day[] = map.map((id) => ({ dest: id, label: '', items: [] }));
   const wish: Item[] = [];
   const used = new Set<string>();
 
   for (const id of t.dests) {
-    const d = D[id];
+    const d = destView(t, id);
     if (!d) continue;
+    const places = d.curated ? d.curated.pl : t.pools?.[id] || [];
     const idx = map.map((x, i) => (x === id ? i : -1)).filter((i) => i >= 0);
-    let pool: Scored[] = d.pl.map((p) => ({ p, s: scorePlace(p, pr) })).sort((a, b) => b.s - a.s);
+    let pool: Scored[] = places.map((p) => ({ p, s: scorePlace(p, pr) })).sort((a, b) => b.s - a.s);
     const dayTrips = pool.filter((x) => x.p.d >= 360);
     pool = pool.filter((x) => x.p.d < 360);
 
@@ -72,8 +83,8 @@ export function genPlan(t: GenInput): { plan: Day[]; wish: Item[] } {
         maxN = Math.min(maxN, 3);
       }
       if (arrive) {
-        const from = D[map[di - 1]];
-        const dist = from ? km({ lat: from.center[0], lng: from.center[1] }, { lat: d.center[0], lng: d.center[1] })! : 0;
+        const from = destView(t, map[di - 1]);
+        const dist = from?.center && d.center ? km(from.center, d.center)! : 0;
         const tr = Math.max(120, up15(travelMin(dist)));
         day.items.push(customItem({ t: `Travel to ${d.name}`, cat: 'transit', s: 480, d: tr, dest: id, n: from ? `About ${Math.round(dist)} km from ${from.name}. Check train and bus timings.` : '' }));
         cur = up15(480 + tr + 45);
@@ -89,7 +100,7 @@ export function genPlan(t: GenInput): { plan: Day[]; wish: Item[] } {
         const dt = dayTrips.shift()!;
         used.add(dt.p.pid);
         day.items.push(itemFromPlace(dt.p, pace.start));
-        day.label = dt.p.n;
+        day.label = dt.p.gid ? 'Day trip' : dt.p.n;
         return;
       }
       let avail = pool.filter((x) => !used.has(x.p.pid));
@@ -152,7 +163,8 @@ export function genPlan(t: GenInput): { plan: Day[]; wish: Item[] } {
         cascade(day);
       }
       cascade(day);
-      const areas = pick.map((p) => p.area);
+      // Area names of Google places are Google content, so live days are labelled with the destination name.
+      const areas = pick.filter((p) => !p.gid).map((p) => p.area);
       const top = areas.sort((a, b) => areas.filter((x) => x === b).length - areas.filter((x) => x === a).length)[0];
       day.label = (first ? 'Arrival + ' : arrive ? 'Travel + ' : last ? 'Last day: ' : '') + (top || d.name);
     });
@@ -180,21 +192,28 @@ export interface BuildInput {
   prefs: Prefs;
   budgetTotal?: number;
   name?: string;
+  destRecords?: Record<string, DestRecord>;
+  pools?: Record<string, Place[]>;
+  /** Top restaurants per live destination, for lunch picks */
+  lunchPools?: Record<string, LivePlace[]>;
+  currency?: string;
 }
 
 export function buildTrip(o: BuildInput): Trip {
   const now = Date.now();
   const t: Trip = {
     id: uid(),
-    name: o.name || o.dests.map((id) => D[id]?.name).join(' + ') + ' trip',
+    name: o.name || o.dests.map((id) => destName({ destRecords: o.destRecords }, id)).join(' + ') + ' trip',
     dests: o.dests, start: o.start || '', days: o.days, group: o.group || 'couple', travelers: o.travelers,
     pace: o.pace, prefs: o.prefs, budgetTotal: o.budgetTotal || 0,
     plan: [], wish: [], budget: { travel: 0, stay: 0, food: 0, local: 0, act: 0, shop: 0, misc: 0 },
     expenses: [], stays: [], pack: [], notes: '', created: now, updated: now,
+    destRecords: o.destRecords || {}, currency: o.currency || 'INR',
   };
-  const g = genPlan(t);
+  const g = genPlan({ ...t, pools: o.pools });
   t.plan = g.plan;
   t.wish = g.wish;
+  for (const [key, list] of Object.entries(o.lunchPools || {})) pickLunches(t.plan, key, list);
   t.budget = estBudget(t);
   t.pack = genPack(t);
   return t;
@@ -232,9 +251,9 @@ export function buildSampleTrip(today = new Date()): Trip {
 }
 
 /** Wizard live estimate (reference `wzEst`). */
-export function wizardEstimate(w: { n: number; prefs: Prefs; dests: string[]; days: number }): number {
-  const tmp = { travelers: Array(w.n).fill('x'), prefs: w.prefs, plan: allocDays(w.dests.length ? w.dests : ['jaipur'], w.days).map((id) => ({ dest: id, items: [] as Item[] })) };
+export function wizardEstimate(w: { n: number; prefs: Prefs; dests: string[]; days: number; destRecords?: Record<string, DestRecord> }): number {
+  const tmp = { travelers: Array(w.n).fill('x'), prefs: w.prefs, destRecords: w.destRecords, plan: allocDays(w.dests.length ? w.dests : ['jaipur'], w.days, w.destRecords).map((id) => ({ dest: id, items: [] as Item[] })) };
   const b = estBudget(tmp);
-  const fees = sum(w.dests, (id) => sum(D[id].pl.filter((p) => p.must), (p) => p.c)) * w.n;
+  const fees = sum(w.dests, (id) => sum(D[id]?.pl.filter((p) => p.must) || [], (p) => p.c)) * w.n;
   return r500(b.stay + b.food + b.local + fees + (b.stay + b.food + b.local) * 0.13);
 }

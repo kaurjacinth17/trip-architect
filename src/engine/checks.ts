@@ -1,6 +1,7 @@
 // Realism checks, ported rule-for-rule from the reference `analyzeDay` / `analyzeTrip`.
 import { BCATS, MONTHS, WDL, paceOf } from '../data/constants';
-import { D, PL } from '../data/destinations';
+import { PL } from '../data/destinations';
+import { destView } from './dest';
 import { seasonOf } from './season';
 import { geo, km, nnKm, pathKm, travelMin } from './geo';
 import { dayStats, isAct, travellers } from './schedule';
@@ -134,13 +135,13 @@ export function analyzeTrip(t: Trip): TripAnalysis {
   if (t.start) {
     const m = new Date(t.start + 'T00:00:00').getMonth() + 1;
     for (const id of t.dests) {
-      const d = D[id];
+      const d = destView(t, id);
       if (d && seasonOf(d, m) === 'poor') W.push({ lvl: 'caution', k: 'season', title: `${MONTHS[m - 1]} is off-season for ${d.name}`, body: d.bestTime });
     }
   }
   for (const id of t.dests) {
-    const d = D[id];
-    if (!d) continue;
+    const d = destView(t, id);
+    if (!d || !d.daysKnown) continue;
     const nd = t.plan.filter((x) => x.dest === id).length;
     if (nd && nd < d.days[0]) W.push({ lvl: 'caution', k: 'short', title: `${d.name} usually needs ${d.days[0]}–${d.days[1]} days`, body: `You have ${plural(nd, 'day')} there. Expect to choose between highlights.` });
   }

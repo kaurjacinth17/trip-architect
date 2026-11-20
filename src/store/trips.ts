@@ -6,10 +6,11 @@ import type { FactorKey, Trip, TripFix } from '../engine/types';
 import { applyFix as runFix } from '../engine/fixes';
 import { buildSampleTrip } from '../engine/generate';
 import { normaliseTrip } from '../engine/share';
+import { purgeExpiredCoords } from '../engine/coords';
 import { clone, uid } from '../engine/util';
 
 export const STORAGE_KEY = 'trip-architect-v1';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const UNDO_LIMIT = 60;
 
 export type Weights = Record<FactorKey | 'season', number>;
@@ -72,6 +73,16 @@ const storage: StateStorage = {
 
 type Persisted = Pick<TripsState, 'trips' | 'compare'>;
 
+/** v1 → v2: destination records, trip currency, and expenses with a currency and fixed INR value. */
+export function upgradeTripV2(t: Trip): Trip {
+  return {
+    ...t,
+    destRecords: t.destRecords || {},
+    currency: t.currency || 'INR',
+    expenses: (t.expenses || []).map((e) => ({ ...e, cur: e.cur || 'INR', inr: e.inr ?? e.amt })),
+  };
+}
+
 export function migrate(persisted: unknown, version: number): Persisted {
   const p = (persisted || {}) as Partial<Persisted>;
   const trips: Record<string, Trip> = {};
@@ -79,13 +90,14 @@ export function migrate(persisted: unknown, version: number): Persisted {
     // v0: the single-file prototype. Normalise every trip but keep ids so links still work.
     for (const t of Object.values(p.trips || {})) {
       try {
-        const n = normaliseTrip(t, { keepId: true });
+        const n = upgradeTripV2(normaliseTrip(t, { keepId: true }));
         trips[n.id] = n;
       } catch { /* drop unreadable trips */ }
     }
     return { trips, compare: { ...DEFAULT_COMPARE, ...(p.compare || {}) } };
   }
-  return { trips: p.trips || {}, compare: { ...DEFAULT_COMPARE, ...(p.compare || {}) } };
+  for (const [id, t] of Object.entries(p.trips || {})) trips[id] = version < 2 ? upgradeTripV2(t) : t;
+  return { trips, compare: { ...DEFAULT_COMPARE, ...(p.compare || {}) } };
 }
 
 export const useTrips = create<TripsState>()(
@@ -190,7 +202,12 @@ export const useTrips = create<TripsState>()(
         trips: Object.fromEntries(Object.entries(s.trips).filter(([, t]) => !(t.sample && !t.touched))),
         compare: s.compare,
       }),
-      merge: (persisted, current) => ({ ...current, ...(persisted as Persisted) }),
+      merge: (persisted, current) => {
+        const p = persisted as Persisted;
+        // Google coordinates older than 30 days are deleted on load (Places API caching limit).
+        const trips = Object.fromEntries(Object.entries(p?.trips || {}).map(([id, t]) => [id, purgeExpiredCoords(t)]));
+        return { ...current, ...p, trips };
+      },
     },
   ),
 );

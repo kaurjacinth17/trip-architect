@@ -2,6 +2,8 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
 import { BCATS, PACE } from '../data/constants';
 import { D } from '../data/destinations';
+import { stripGoogleCoords } from './coords';
+import { routeName } from './dest';
 import { plannedTotal } from './budget';
 import { travellers } from './schedule';
 import { dayDate, fmtD, fmtT, hm } from './time';
@@ -12,7 +14,7 @@ export const APP_ID = 'trip-architect';
 export const FILE_VERSION = 1;
 export const SHARE_WARN_LENGTH = 8000;
 
-const route = (t: Trip) => t.dests.map((id) => D[id]?.name).join(' → ');
+const route = (t: Trip) => routeName(t);
 const range = (t: Trip) => `${fmtD(dayDate(t, 0))} – ${fmtD(dayDate(t, t.plan.length - 1))}`;
 
 /** WhatsApp-formatted itinerary. */
@@ -54,9 +56,13 @@ export function printDocument(t: Trip): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(t.name)}</title><style>body{font:15px/1.5 Georgia,serif;max-width:760px;margin:32px auto;padding:0 16px;color:#111}h1{font-size:32px;margin:0 0 6px}h2{font-size:20px}table{width:100%;border-collapse:collapse}td{padding:6px 8px;border-bottom:1px solid #ddd;vertical-align:top}</style></head><body>${printHTML(t)}</body></html>`;
 }
 
-/** Strip the in-browser-only flags before a trip leaves the app. */
+/**
+ * Prepare a trip to leave the app (file export or share link): drop in-browser flags and Google coordinates
+ * (they may only be cached by us, for 30 days). Place IDs and the user's own data travel; details are fetched
+ * live when the trip is opened.
+ */
 function portable(t: Trip): Trip {
-  const { sample: _s, touched: _t, ...rest } = t;
+  const { sample: _s, touched: _t, ...rest } = stripGoogleCoords(t);
   return rest as Trip;
 }
 
@@ -77,7 +83,7 @@ export function normaliseTrip(input: unknown, opts: { keepId?: boolean } = {}): 
   const out: Trip = {
     id: opts.keepId && t.id ? t.id : uid(),
     name: t.name,
-    dests: t.dests.filter((id) => typeof id === 'string' && D[id]),
+    dests: t.dests.filter((id) => typeof id === 'string' && (D[id] || t.destRecords?.[id])),
     start: typeof t.start === 'string' ? t.start : '',
     days: t.plan.length,
     group: t.group || 'couple',
@@ -92,6 +98,8 @@ export function normaliseTrip(input: unknown, opts: { keepId?: boolean } = {}): 
     stays: t.stays ?? [],
     pack: t.pack ?? [],
     notes: t.notes ?? '',
+    destRecords: Object.fromEntries(Object.entries(t.destRecords || {}).filter(([k]) => (t.dests || []).includes(k))),
+    currency: typeof t.currency === 'string' && /^[A-Z]{3}$/.test(t.currency) ? t.currency : 'INR',
     created: t.created || Date.now(),
     updated: t.updated || Date.now(),
   };

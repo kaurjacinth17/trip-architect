@@ -1,10 +1,10 @@
-import { D } from '../data/destinations';
+import { destView } from './dest';
 import type { PackItem, Trip } from './types';
 import { uid } from './util';
 
-export function genPack(t: Pick<Trip, 'start' | 'dests' | 'days'>): PackItem[] {
+export function genPack(t: Pick<Trip, 'start' | 'dests' | 'days' | 'destRecords'>): PackItem[] {
   const months = t.start ? [new Date(t.start + 'T00:00:00').getMonth() + 1] : [];
-  const cl = new Set(t.dests.flatMap((id) => D[id]?.climate || []));
+  const cl = new Set(t.dests.flatMap((id) => destView(t, id)?.climateTags(months[0]) || []));
   const days = t.days;
   const L: PackItem[] = [];
   const add = (cat: string, name: string, qty = 1) => L.push({ id: uid(), cat, name, qty, done: false });

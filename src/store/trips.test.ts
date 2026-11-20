@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildTrip, DEFAULT_PREFS } from '../engine/generate';
 import { exportJSON } from '../engine/share';
-import { migrate, STORAGE_KEY, useTrips } from './trips';
+import { migrate, SCHEMA_VERSION, STORAGE_KEY, useTrips } from './trips';
 
 const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 
@@ -17,7 +17,7 @@ describe('trips store', () => {
     expect(t.sample).toBe(true);
     expect(t.start).toBe('2026-12-11');
     expect(stored().state.trips).toEqual({});
-    expect(stored().version).toBe(1);
+    expect(stored().version).toBe(SCHEMA_VERSION);
 
     useTrips.getState().mutate(t.id, (x) => { x.notes = 'hi'; });
     expect(Object.keys(stored().state.trips)).toEqual([t.id]);
