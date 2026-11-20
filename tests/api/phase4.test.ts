@@ -50,3 +50,22 @@ describe('POST /api/routes/legs', () => {
     expect((await legs(new Request('http://localhost/api/routes/legs', { method: 'POST', body: JSON.stringify({ legs: [{ ...leg, to: { lat: 99, lng: 0 } }] }) }))).status).toBe(400);
   });
 });
+
+import { POST as nearby } from '../../api/places/nearby';
+describe('POST /api/places/nearby', () => {
+  it('uses the Enterprise mask for rated layers and the Pro mask for ATMs/pharmacies', async () => {
+    const calls: { mask: string | null; body: Record<string, unknown> }[] = [];
+    server.use(http.post(/places\.googleapis\.com\/v1\/places:searchNearby$/, async ({ request }) => {
+      calls.push({ mask: request.headers.get('x-goog-fieldmask'), body: (await request.json()) as Record<string, unknown> });
+      return HttpResponse.json({ places: [{ id: 'ChIJTESTatm000000000001', displayName: { text: 'ATM' }, location: { latitude: 1, longitude: 2 }, types: ['atm'] }] });
+    }));
+    const req = (layer: string, radius = 1500) => new Request('http://localhost/api/places/nearby', { method: 'POST', body: JSON.stringify({ layer, center: { lat: 26.9, lng: 75.8 }, radius }) });
+    expect((await (await nearby(req('restaurants'))).json()).places[0].name).toBe('ATM');
+    expect(calls[0].mask).toBe(MASKS.nearby);
+    expect(calls[0].body).toMatchObject({ includedTypes: ['restaurant'], maxResultCount: 20, locationRestriction: { circle: { radius: 1500 } } });
+    await nearby(req('atms'));
+    expect(calls[1].mask).toBe(MASKS.nearbyBasic);
+    expect((await nearby(req('casinos'))).status).toBe(400);
+    expect((await nearby(req('atms', 50_000))).status).toBe(400);
+  });
+});

@@ -17,6 +17,7 @@ export type Sku =
   | 'textSearchPro'                // Text Search Pro (India): 35,000
   | 'textSearchEnterprise'         // Text Search Enterprise (India): 7,000
   | 'nearbySearchEnterprise'       // Nearby Search Enterprise (India): 7,000
+  | 'nearbySearchPro'              // Nearby Search Pro (India): 35,000
   | 'placePhotos'                  // Place Details Photos (India): 7,000
   | 'routesEssentials';            // Routes: Compute Routes Essentials (India): 70,000
 
@@ -29,6 +30,7 @@ export const MONTHLY_FREE: Record<Sku, number> = {
   textSearchPro: 35_000,
   textSearchEnterprise: 7_000,
   nearbySearchEnterprise: 7_000,
+  nearbySearchPro: 35_000,
   placePhotos: 7_000,
   routesEssentials: 70_000,
 };

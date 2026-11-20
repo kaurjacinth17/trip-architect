@@ -11,6 +11,10 @@ export const MASKS = {
   lite: 'id,displayName,location,primaryType,types,googleMapsUri,businessStatus',
   /** Text Search Enterprise: list rows with rating, review count, price level and open-now */
   search: 'places.id,places.displayName,places.types,places.primaryType,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours.openNow,places.regularOpeningHours.periods,places.accessibilityOptions.wheelchairAccessibleEntrance,places.googleMapsUri,places.addressComponents,places.shortFormattedAddress,places.businessStatus,nextPageToken',
+  /** Nearby Search Enterprise: map layers that show ratings, price and open-now */
+  nearby: 'places.id,places.displayName,places.types,places.primaryType,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours.openNow,places.googleMapsUri,places.shortFormattedAddress,places.businessStatus',
+  /** Nearby Search Pro: practical layers (ATMs, pharmacies) without ratings */
+  nearbyBasic: 'places.id,places.displayName,places.types,places.primaryType,places.location,places.googleMapsUri,places.shortFormattedAddress,places.businessStatus',
   /** Place Details Enterprise: the detail drawer */
   details: 'id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus',
   /** Place Details Enterprise + Atmosphere: the drawer for restaurants and cafés (adds veg-friendly and summary) */
