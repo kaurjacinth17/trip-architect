@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+process.env.VITE_SITE_URL ??= 'https://trip-architect.vercel.app';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
