@@ -9,7 +9,7 @@ export function Toast() {
   const hide = useToast((s) => s.hide);
   useEffect(() => {
     if (!cur) return;
-    const t = setTimeout(hide, cur.undoTrip ? 6000 : 4200);
+    const t = setTimeout(hide, cur.undo ? 6000 : 4200);
     return () => clearTimeout(t);
   }, [cur, hide]);
   return (
@@ -17,8 +17,13 @@ export function Toast() {
       {cur && (
         <div className="toast" key={cur.key}>
           <span>{cur.msg}</span>
-          {cur.undoTrip && (
-            <button type="button" onClick={() => { if (useTrips.getState().undoTrip(cur.undoTrip!)) useToast.getState().show('Undone'); else hide(); }}>
+          {cur.undo && (
+            <button type="button" onClick={() => {
+              const u = cur.undo!;
+              if (typeof u === 'function') { u(); hide(); }
+              else if (useTrips.getState().undoTrip(u)) useToast.getState().show('Undone');
+              else hide();
+            }}>
               Undo
             </button>
           )}

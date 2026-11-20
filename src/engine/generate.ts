@@ -200,6 +200,8 @@ export function buildTrip(o: BuildInput): Trip {
   return t;
 }
 
+export const SAMPLE_ID = 'sample-jaipur';
+
 export const DEFAULT_PREFS: Prefs = { natureCity: 0, sightExp: 0, foodShop: 0, advComfort: 0, tier: 1 };
 
 /** The first-visit sample trip, exactly as the reference start-up block builds it. */
@@ -208,6 +210,8 @@ export function buildSampleTrip(today = new Date()): Trip {
   d.setDate(d.getDate() + 21);
   const start = isoDate(d);
   const t = buildTrip({ dests: ['jaipur'], days: 4, start, travelers: ['You', 'Riya'], group: 'couple', pace: 'balanced', prefs: { ...DEFAULT_PREFS }, budgetTotal: 25000, name: 'Jaipur getaway' });
+  // Stable id so links to the (unsaved) sample survive a reload; see NOTES.md.
+  t.id = SAMPLE_ID;
   t.sample = true;
   t.touched = false;
   t.budget.travel = 3000;

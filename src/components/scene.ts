@@ -1,6 +1,5 @@
 // Illustrated destination scenes, ported verbatim from the reference `scene()`. Output is static SVG built
 // only from curated colours in DESTS (the name is escaped), so it is safe to inject.
-/* eslint-disable prefer-const */
 import type { Dest } from '../engine/types';
 import { esc } from '../engine/util';
 
