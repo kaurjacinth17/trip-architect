@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { apiDev } from './scripts/vite-api-dev';
 
 const DEST_IDS = ['jaipur', 'udaipur', 'goa', 'kerala', 'manali', 'varanasi', 'rishikesh', 'pondicherry'];
 
@@ -22,11 +23,11 @@ function seoFiles(site: string): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const env = loadEnv(mode, process.cwd(), '');
   const site = (env.VITE_SITE_URL || 'https://trip-architect.vercel.app').replace(/\/$/, '');
   process.env.VITE_SITE_URL = site; // used by %VITE_SITE_URL% in index.html
   return {
-    plugins: [react(), seoFiles(site)],
+    plugins: [react(), seoFiles(site), apiDev(env)],
     build: {
       target: 'es2022',
       rollupOptions: {
@@ -42,7 +43,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: ['./src/test-setup.ts'],
-      include: ['src/**/*.test.{ts,tsx}'],
+      include: ['src/**/*.test.{ts,tsx}', 'tests/api/**/*.test.ts'],
+      environmentMatchGlobs: [['tests/api/**', 'node']],
     },
   };
 });

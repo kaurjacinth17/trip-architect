@@ -6,7 +6,7 @@ const SAMPLE = '/trips/sample-jaipur';
 const ROUTES = [
   '/', '/explore', '/explore?mood=beach', '/destinations/jaipur', '/destinations/goa', '/compare', '/new', '/new?dest=udaipur', '/trips',
   ...['overview', 'itinerary', 'map', 'budget', 'stays', 'packing', 'share', 'print'].map((t) => `${SAMPLE}/${t}`),
-  '/shared', '/about', '/no-such-page',
+  '/shared', '/about', '/terms', '/privacy', '/no-such-page',
 ];
 
 /** Serve blank tiles and fonts locally so the test needs no network and stays deterministic. */

@@ -62,7 +62,7 @@ export function Footer() {
     <footer className="sitefoot noprint">
       <p>Costs, durations, distances and seasons are planning estimates from curated data, not live prices, timetables or bookings. Check current conditions before you travel.</p>
       <p>Map tiles: {TILE_ATTRIBUTION_TEXT}. Destination illustrations are original drawings.</p>
-      <nav aria-label="Footer"><Link to="/about">About and FAQ</Link><Link to="/explore">Explore</Link><Link to="/trips">My trips</Link></nav>
+      <nav aria-label="Footer"><Link to="/about">About and FAQ</Link><Link to="/terms">Terms</Link><Link to="/privacy">Privacy</Link><Link to="/explore">Explore</Link><Link to="/trips">My trips</Link></nav>
     </footer>
   );
 }

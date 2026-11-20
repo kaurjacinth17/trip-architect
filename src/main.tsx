@@ -1,12 +1,19 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
+import { checkHealth } from './lib/liveStatus';
+import { makeQueryClient } from './lib/query';
 import { App } from './App';
 import { useTrips } from './store/trips';
 import './styles/global.css';
 
 // First visit: create the sample trip (kept out of storage until edited).
 useTrips.getState().ensureSample();
+
+// Which live providers this deployment has (a cheap call; no Google request).
+void checkHealth();
+const queryClient = makeQueryClient();
 
 // Responsive tables: label each `.stack` cell with its column header (ported from the reference).
 new MutationObserver(() => {
@@ -20,8 +27,10 @@ new MutationObserver(() => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>
   </StrictMode>,
 );

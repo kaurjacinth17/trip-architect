@@ -7,7 +7,9 @@ export, print and share options.
 
 > ChatGPT gives you answers. Trip Architect gives you a system to manage your trip.
 
-- No accounts, no backend, no paid APIs. Trips live in the browser's `localStorage`.
+- Works with no keys at all (guest mode, trips in `localStorage`, 8 curated destinations). Live place data, maps,
+  photos and accounts switch on as you add keys: see **[docs/SETUP.md](docs/SETUP.md)**.
+- Server code lives in `api/` (Vercel functions); `npm run dev` serves it locally too.
 - Vite + React 18 + TypeScript (strict), React Router, Zustand, @dnd-kit, Leaflet, lz-string.
 - Ported from the single-file prototype `trip-architect-reference.html` (see `PLAN.md` and `NOTES.md`).
 
@@ -78,11 +80,10 @@ GitHub Actions (`.github/workflows/ci.yml`) then runs typecheck, lint, Vitest an
 instructions Vercel shows (an `A` record for an apex domain or a `CNAME` for a subdomain). Then update
 `VITE_SITE_URL` to the new domain and redeploy.
 
-### Alternative: Netlify
+### Netlify (guest mode only)
 
-Import the repository at https://app.netlify.com (**Add new site → Import an existing project**). `netlify.toml`
-sets the build command and `dist` folder, and `public/_redirects` (`/* /index.html 200`) provides the SPA fallback.
-Set the same environment variables under **Site configuration → Environment variables**.
+The `api/` functions are Vercel functions, so on Netlify the site runs in guest + curated mode only (no live place
+data). `netlify.toml` and `public/_redirects` still build and serve it.
 
 ## 4. Add a new destination
 

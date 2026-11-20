@@ -9,6 +9,8 @@ import { Compare } from './pages/Compare';
 import { NewTrip } from './pages/NewTrip';
 import { Trips } from './pages/Trips';
 import { About } from './pages/About';
+import { Privacy, Terms } from './pages/Legal';
+import { LiveDataBanner } from './components/LiveDataBanner';
 
 const Destination = lazy(() => import('./pages/Destination'));
 const TripPage = lazy(() => import('./pages/trip/TripPage'));
@@ -61,6 +63,7 @@ export function App() {
         <Sidebar />
         <div>
           <Topbar />
+          <LiveDataBanner />
           <main className="main" id="main" tabIndex={-1}>
             <Suspense fallback={<p className="muted" role="status">Loading…</p>}>
               <Routes>
@@ -75,6 +78,8 @@ export function App() {
                 <Route path="/trips/:id/:tab" element={<TripPage />} />
                 <Route path="/shared" element={<Shared />} />
                 <Route path="/about" element={<About />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
                 <Route path="*" element={<Missing />} />
               </Routes>
             </Suspense>

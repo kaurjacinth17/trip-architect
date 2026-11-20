@@ -66,6 +66,7 @@ Platform core services pricing list – India (effective 1 Aug 2024); Places dat
 | C7 | Brief asks for "all hotels" per city. Google returns at most 60 results per query. | "All areas" mode (one query per OSM area, on request only) with an honest count, as specified. |
 | C8 | Open-Meteo free use is non-commercial; Vercel Hobby limits cron to once a day. | Daily keep-alive cron fits. Re-check Open-Meteo's and Vercel's terms if you monetise. |
 | C9 | Collaboration needs a server, but guest mode must not change. | A `TripRepository` interface: `LocalRepository` (today's zustand store) and `SupabaseRepository` (Phase 8). Engine stays pure; UI talks to the repository. |
+| C11 | Brief asks for per-API **daily** quota caps in Google's console. Places API (New) quotas are **per minute, per method** (the console offers no per-day value for them). | The server enforces a **daily budget per Google SKU** (`api/_lib/budget.ts`), stored in Upstash Redis so all function instances share it (in-memory fallback is per instance, fine for dev only). Console: conservative per-minute caps + a ₹ budget alert (alerts notify; they don't stop billing). |
 | C10 | Lighthouse colour-contrast flags from the reference palette. | Phase 10 asks for WCAG AA, so `--terra` text/tag pairs get darkened slightly (noted in NOTES.md). |
 
 ## 3. Phases → files
