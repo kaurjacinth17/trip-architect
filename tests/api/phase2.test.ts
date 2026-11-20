@@ -62,9 +62,11 @@ describe('field masks (every change here changes the Google bill)', () => {
       {
         "autocomplete": "suggestions.placePrediction.placeId,suggestions.placePrediction.structuredFormat,suggestions.placePrediction.types",
         "destination": "id,displayName,location,viewport,types,primaryType,addressComponents,timeZone,googleMapsUri",
+        "details": "id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus",
+        "detailsFood": "id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus,servesVegetarianFood,editorialSummary",
         "editorial": "id,editorialSummary",
         "lite": "id,displayName,location,primaryType,types,googleMapsUri,businessStatus",
-        "search": "places.id,places.displayName,places.types,places.primaryType,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours.openNow,places.googleMapsUri,places.addressComponents,places.shortFormattedAddress,places.businessStatus,nextPageToken",
+        "search": "places.id,places.displayName,places.types,places.primaryType,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours.openNow,places.regularOpeningHours.periods,places.accessibilityOptions.wheelchairAccessibleEntrance,places.googleMapsUri,places.addressComponents,places.shortFormattedAddress,places.businessStatus,nextPageToken",
       }
     `);
   });

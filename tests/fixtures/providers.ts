@@ -9,6 +9,9 @@ export const IDS = {
   umaid: 'ChIJTESTumaidbhawan00001',
   cafe: 'ChIJTESTcafeone000000001',
   thali: 'ChIJTESTthalihouse000001',
+  hotelA: 'ChIJTESThotelalpha00001',
+  hotelB: 'ChIJTESThotelbeta000001',
+  hotelC: 'ChIJTESThotelgamma00001',
 };
 
 export const googleAutocomplete = (input: string) => ({
@@ -53,6 +56,13 @@ export const googleSearch: Record<string, { places: unknown[]; nextPageToken?: s
     pl(IDS.cafe, 'Rooftop Café', 26.2939, 73.0232, ['cafe', 'restaurant'], 4.2, 640, 'Old City', 'PRICE_LEVEL_INEXPENSIVE'),
   ] },
 };
+
+googleSearch.hotels = { places: [
+  pl(IDS.hotelA, 'Haveli Alpha (fixture)', 26.2951, 73.0230, ['lodging', 'hotel'], 4.6, 1200, 'Old City', 'PRICE_LEVEL_MODERATE'),
+  pl(IDS.hotelB, 'Beta Residency (fixture)', 26.2800, 73.0450, ['lodging', 'hotel'], 4.1, 800, 'Cantonment', 'PRICE_LEVEL_EXPENSIVE'),
+  pl(IDS.hotelC, 'Gamma Stay (fixture)', 26.2930, 73.0215, ['lodging', 'hotel'], 4.8, 300, 'Old City', 'PRICE_LEVEL_INEXPENSIVE'),
+] };
+googleSearch.cafes = { places: [googleSearch.restaurants.places[1]] };
 
 export const wikipedia = { type: 'standard', title: 'Jodhpur', extract: 'Jodhpur is a city in Rajasthan (test fixture).', coordinates: { lat: 26.28, lon: 73.02 }, content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Jodhpur' } } };
 

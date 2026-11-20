@@ -11,10 +11,11 @@ const allItems = (t: Trip): Item[] => [...t.plan.flatMap((d) => d.items), ...t.w
 /** Delete expired Google coordinates. Returns the same object when nothing changed. */
 export function purgeExpiredCoords(t: Trip, now = Date.now()): Trip {
   const expired = (at?: number) => at != null && now - at >= COORD_TTL_MS;
-  const stale = allItems(t).some((x) => x.gid && expired(x.coordsFetchedAt)) || Object.values(t.destRecords || {}).some((r) => r.kind === 'google' && expired(r.coordsFetchedAt));
+  const stale = allItems(t).some((x) => x.gid && expired(x.coordsFetchedAt)) || t.stays.some((s) => s.gid && expired(s.coordsFetchedAt)) || Object.values(t.destRecords || {}).some((r) => r.kind === 'google' && expired(r.coordsFetchedAt));
   if (!stale) return t;
   const c = clone(t);
   for (const x of allItems(c)) if (x.gid && expired(x.coordsFetchedAt)) { x.lat = null; x.lng = null; delete x.coordsFetchedAt; }
+  for (const s of c.stays) if (s.gid && expired(s.coordsFetchedAt)) { s.lat = null; s.lng = null; delete s.coordsFetchedAt; }
   for (const r of Object.values(c.destRecords || {})) if (r.kind === 'google' && expired(r.coordsFetchedAt)) { r.center = null; r.viewport = null; delete r.coordsFetchedAt; }
   return c;
 }
@@ -22,7 +23,7 @@ export function purgeExpiredCoords(t: Trip, now = Date.now()): Trip {
 /** Google place IDs whose coordinates are missing or due for refresh. */
 export function coordsToRefresh(t: Trip, now = Date.now()): { items: string[]; dests: string[] } {
   const due = (at?: number, has?: boolean) => !has || at == null || now - at >= COORD_REFRESH_MS;
-  const items = [...new Set(allItems(t).filter((x) => x.gid && due(x.coordsFetchedAt, x.lat != null)).map((x) => x.gid!))];
+  const items = [...new Set([...allItems(t), ...t.stays].filter((x) => x.gid && due(x.coordsFetchedAt, x.lat != null)).map((x) => x.gid!))];
   const dests = Object.values(t.destRecords || {}).filter((r) => r.kind === 'google' && r.placeId && due(r.coordsFetchedAt, !!r.center)).map((r) => r.placeId!);
   return { items, dests };
 }
@@ -30,12 +31,14 @@ export function coordsToRefresh(t: Trip, now = Date.now()): { items: string[]; d
 /** Apply refreshed coordinates for a Google place everywhere it appears in the trip. */
 export function setItemCoords(t: Trip, gid: string, loc: { lat: number; lng: number }, now = Date.now()) {
   for (const x of allItems(t)) if (x.gid === gid) { x.lat = loc.lat; x.lng = loc.lng; x.coordsFetchedAt = now; }
+  for (const s of t.stays) if (s.gid === gid) { s.lat = loc.lat; s.lng = loc.lng; s.coordsFetchedAt = now; }
 }
 
 /** Strip Google coordinates (for share links and exports, which leave this app). */
 export function stripGoogleCoords(t: Trip): Trip {
   const c = stripLiveNames(t);
   for (const x of allItems(c)) if (x.gid) { x.lat = null; x.lng = null; delete x.coordsFetchedAt; }
+  for (const s of c.stays) if (s.gid) { s.lat = null; s.lng = null; delete s.coordsFetchedAt; }
   for (const r of Object.values(c.destRecords || {})) if (r.kind === 'google') { r.center = null; r.viewport = null; delete r.coordsFetchedAt; }
   return c;
 }
@@ -44,5 +47,6 @@ export function stripGoogleCoords(t: Trip): Trip {
 export function stripLiveNames(t: Trip): Trip {
   const c = clone(t);
   for (const x of allItems(c)) if (x.nameLive) { x.t = ''; delete x.nameLive; }
+  for (const s of c.stays) if (s.nameLive) { s.name = ''; delete s.nameLive; }
   return c;
 }

@@ -128,7 +128,12 @@ export type StayStatus = 'idea' | 'shortlisted' | 'booked';
 
 export interface Stay {
   id: string;
+  /** User-entered name; empty for a Google hotel (its name is shown live from `gid`) */
   name: string;
+  /** Google place ID of the hotel, when set from the City Guide */
+  gid?: string;
+  coordsFetchedAt?: number;
+  nameLive?: boolean;
   area: string;
   dest: string;
   lat: number | null;

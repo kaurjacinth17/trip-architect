@@ -31,7 +31,7 @@ export function GoogleAttribution({ style }: { style?: React.CSSProperties }) {
 }
 
 /** Find a record: local cache → any trip that uses it → Google details (Pro) for "g:" keys. */
-function useRecord(key: string) {
+export function useRecord(key: string) {
   const cached = useDestCache((s) => s.records[key]);
   const trips = useTrips((s) => s.trips);
   const fromTrip = Object.values(trips).map((t) => t.destRecords?.[key]).find(Boolean);
@@ -146,6 +146,7 @@ export default function LiveDestination({ destKey }: { destKey: string }) {
           </dl>
           <div className="row">
             <Link className="btn pri" to={`/new?dest=${encodeURIComponent(rec.key)}`}>Plan a trip here</Link>
+            <Link className="btn" to={`/destinations/${rec.key}/guide`}>City Guide</Link>
             {ts.length > 0 && <button type="button" className="btn" onClick={() => setAdding(true)}>Add to a trip</button>}
             {rec.placeId && <a className="btn" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.name)}&query_place_id=${rec.placeId}`} target="_blank" rel="noopener noreferrer">Open in Google Maps</a>}
           </div>
@@ -175,7 +176,7 @@ export default function LiveDestination({ destKey }: { destKey: string }) {
       </div>
 
       <section className="sec">
-        <h2>Famous attractions</h2>
+        <div className="row between"><h2>Famous attractions</h2><Link className="btn sm" to={`/destinations/${rec.key}/guide`}>Restaurants, hotels and more in the City Guide</Link></div>
         {famous.isLoading ? <p className="muted small" style={{ marginTop: 8 }}>Loading attractions…</p>
           : famous.isError || !famous.data ? <p className="muted small" style={{ marginTop: 8 }}>Live attractions aren’t available right now. You can still plan a trip and add your own activities.</p>
           : (

@@ -135,4 +135,4 @@ export function useRates(enabled: boolean) {
 }
 
 /** Google place IDs used anywhere in a trip. */
-export const tripGids = (t: Trip) => [...new Set([...t.plan.flatMap((d) => d.items), ...t.wish].map((x) => x.gid).filter(Boolean) as string[])];
+export const tripGids = (t: Trip) => [...new Set([...t.plan.flatMap((d) => d.items), ...t.wish, ...t.stays].map((x) => x.gid).filter(Boolean) as string[])];

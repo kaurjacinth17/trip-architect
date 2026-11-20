@@ -11,8 +11,8 @@ export interface GoogleCall {
   path: string;
   method?: 'GET' | 'POST';
   body?: unknown;
-  /** Comma-separated field mask. Required: Places API (New) bills by the fields requested. */
-  fieldMask: string;
+  /** Comma-separated field mask. Required (Places API (New) bills by the fields requested), except for photo media. */
+  fieldMask: string | null;
   sku: Sku;
   query?: Record<string, string>;
 }
@@ -20,7 +20,7 @@ export interface GoogleCall {
 export async function googlePlaces<T>(c: GoogleCall): Promise<T> {
   const key = env.googlePlacesKey();
   if (!key) throw new ApiError(503, 'not_configured', 'Live place data isn’t set up on this site yet');
-  if (!c.fieldMask || c.fieldMask.includes('*')) throw new ApiError(500, 'internal', 'Field mask required');
+  if (c.fieldMask === null ? !c.path.endsWith('/media') : !c.fieldMask || c.fieldMask.includes('*')) throw new ApiError(500, 'internal', 'Field mask required');
   await spend(c.sku);
   // Not new URL(path, base): 'places:searchText' would parse as a URL scheme.
   const url = new URL(PLACES_BASE + c.path.replace(/^\//, ''));
@@ -32,7 +32,7 @@ export async function googlePlaces<T>(c: GoogleCall): Promise<T> {
       headers: {
         'content-type': 'application/json',
         'X-Goog-Api-Key': key,
-        'X-Goog-FieldMask': c.fieldMask,
+        ...(c.fieldMask ? { 'X-Goog-FieldMask': c.fieldMask } : {}),
       },
       body: c.body ? JSON.stringify(c.body) : undefined,
     });

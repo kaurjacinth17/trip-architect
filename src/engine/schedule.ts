@@ -166,3 +166,22 @@ export function dayCentre(day: Day, t?: Pick<Trip, 'destRecords'>): { lat: numbe
   if (c.length) return { lat: sum(c, (x) => x.lat) / c.length, lng: sum(c, (x) => x.lng) / c.length };
   return destView(t, day.dest)?.center || null;
 }
+
+/**
+ * Insert `x` at the exact time the user chose. Items after it move later if needed; nothing before it moves
+ * (an earlier item that runs past `at` shows up as an overlap for the user to resolve).
+ */
+export function placeAtExact(t: Trip, di: number, x: Item, at: number) {
+  const day = t.plan[di];
+  x.s = at;
+  if (!x.dest) x.dest = day.dest;
+  sortDay(day);
+  const i = day.items.findIndex((y) => y.s > at);
+  const idx = i < 0 ? day.items.length : i;
+  day.items.splice(idx, 0, x);
+  for (let k = idx + 1; k < day.items.length; k++) {
+    const a = day.items[k - 1], b = day.items[k];
+    const min = a.s + a.d + trm(a, b);
+    if (b.s < min) b.s = up5(min);
+  }
+}

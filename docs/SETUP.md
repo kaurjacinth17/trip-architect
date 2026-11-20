@@ -24,7 +24,7 @@ Numbers below were checked on **20 November 2026** against Google's *core servic
 **APIs & Services → Library**, enable exactly these:
 
 - **Places API (New)** (not the legacy "Places API")
-- **Maps JavaScript API** (needed from Phase 5)
+- **Maps JavaScript API** (City Guide map from Phase 3; all maps from Phase 5)
 
 ### 1.3 Create and restrict the two keys
 
@@ -38,7 +38,7 @@ Numbers below were checked on **20 November 2026** against Google's *core servic
 The server key is only ever used inside `/api` functions and never reaches the browser. The browser key is public by
 design; its referrer restriction is what protects it.
 
-For Phase 5 also create a **Map ID**: **Google Maps Platform → Map management → Create map ID** (type JavaScript,
+Also create a **Map ID** (needed for the pins on Google Maps). Until you do, the app uses Google's `DEMO_MAP_ID`, which is meant for development only: **Google Maps Platform → Map management → Create map ID** (type JavaScript,
 vector) → `VITE_GOOGLE_MAPS_MAP_ID`.
 
 ### 1.4 Stay at ₹0: free usage, caps and alerts
@@ -136,7 +136,7 @@ Project → **Settings → Environment Variables**. Add each for **Production** 
 | --- | --- | --- |
 | `GOOGLE_PLACES_SERVER_KEY` | server | Phase 2 |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | server | Phase 1 (strongly recommended before any Google key) |
-| `VITE_GOOGLE_MAPS_BROWSER_KEY`, `VITE_GOOGLE_MAPS_MAP_ID` | public | Phase 5 |
+| `VITE_GOOGLE_MAPS_BROWSER_KEY`, `VITE_GOOGLE_MAPS_MAP_ID` | public | Phase 3 (City Guide map) |
 | `UNSPLASH_ACCESS_KEY` | server | Phase 9 |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | public | Phase 8 |
 | `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` | server | Phase 8 |

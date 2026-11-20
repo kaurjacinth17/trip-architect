@@ -58,7 +58,7 @@ button{cursor:pointer}
 .chip.on{background:var(--forest);color:var(--on-forest);border-color:var(--forest)}
 .tag{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--sand);font-size:13px;font-weight:600;white-space:nowrap}
 .tag.t{background:var(--terra-soft);color:var(--terra)}.tag.f{background:var(--forest-soft);color:var(--forest)}
-input[type=text],input[type=number],input[type=date],input[type=time],input[type=url],input:not([type]),select,textarea{width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);font-size:16px}
+input[type=search],input[type=text],input[type=number],input[type=date],input[type=time],input[type=url],input:not([type]),select,textarea{width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);font-size:16px}
 textarea{min-height:80px;resize:vertical}
 label.f{display:grid;gap:6px;font-size:14px;font-weight:600}
 input[type=range]{width:100%;accent-color:var(--forest)}
@@ -265,3 +265,24 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .panel .ptabs{position:sticky;top:0;z-index:2;box-shadow:0 0 0 6px var(--bg)}
 .bm-verdict .narrow,.narrow-key{display:none}
 @media(max-width:600px){.bm-verdict .wide{display:none}.bm-verdict .narrow{display:inline}.narrow-key{display:block;margin-top:4px}}
+/* City Guide */
+.guide-split{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+.guide-map{display:none}
+@media(min-width:1180px){.guide-split:has(.guide-map){grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.guide-map{display:block;position:sticky;top:16px;align-self:start}.mapToggle{display:none}}
+@media(max-width:1179px){.guide-split.map-on .guide-map{display:block;order:-1}.guide-split.map-on .guide-map .map{height:50vh!important;min-height:300px}}
+.guide-list{display:grid;gap:8px;align-content:start}
+.pcard.on{border-color:var(--terra);box-shadow:inset 3px 0 0 var(--terra)}
+.pnum{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:var(--forest);color:var(--on-forest);font-size:11px;font-weight:800;margin-right:6px;vertical-align:1px}
+.linkish{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--ink);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;margin-right:6px}
+.linkish:hover{text-decoration-color:var(--forest)}
+.nm .tag{margin-right:4px}
+.filters .chip{min-height:34px;padding:4px 10px;font-size:13px}
+.areas-pick summary{cursor:pointer;min-height:32px}
+.areas-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px;max-height:220px;overflow:auto}
+.gphotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.gphoto{margin:0;position:relative;border-radius:10px;overflow:hidden;background:var(--sand);display:grid;place-items:center}
+.gphoto img{width:100%;height:100%;object-fit:cover;display:block}
+.gphoto figcaption{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#fff;padding:4px 8px}
+.gphoto figcaption a{color:#fff}
+.gmap{min-height:380px}
+.fdetails>summary{cursor:pointer;min-height:32px;list-style-position:inside}

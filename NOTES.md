@@ -82,3 +82,23 @@ Judgement calls made while implementing the upgrade, so they can be reviewed:
 - Drag and drop onto the sticky day rail or the Wishlist tab could miss after the page auto-scrolled mid-drag
   (dnd-kit assumes droppables scroll with the page). Collision now uses their live on-screen position.
 - The side panel's tabs could scroll out of view inside the panel during a drag; they're now sticky.
+
+### Phase 3 notes
+
+- **Google Map arrives early.** The City Guide's split view shows Places results on a map, and Google requires that
+  map to be a Google Map, so `GMap` (Maps JavaScript API) is used from Phase 3. Without `VITE_GOOGLE_MAPS_BROWSER_KEY`
+  the guide is list-only. Without `VITE_GOOGLE_MAPS_MAP_ID` it uses Google's `DEMO_MAP_ID` (development only).
+- **Exact-time inserts hold their time.** "Add to day at 1:00 PM" keeps 1:00 PM; only later items move. If an earlier
+  item runs past it, that shows as an overlap alert for the user to resolve, rather than the new item silently
+  moving (the existing cascade would have pushed it to 1:45 PM).
+- **Veg-friendly** is an Enterprise + Atmosphere field, so it isn't in list searches; the filter only matches places
+  whose details the user has opened, and says so.
+- **Wheelchair entrance and opening hours** are in the list search mask; they don't change the SKU (the search is
+  already Enterprise for ratings).
+- **"All areas"** runs one first-page search per area only after a confirmation that states the cost in the shared
+  daily budget; it stops early (and says so) if the budget runs out. Results per area are cached for 30 minutes in
+  memory, so re-running doesn't spend again.
+- **Hotels set as a stay** store the place ID only (name live) and a price of ₹0 for the user to fill in: there are no
+  live room prices.
+- **Badges:** "Editor's pick" and curated "Must-see" need `scripts/link-curated.ts` to have been run; until then only
+  the top-10 Famous and Hidden-gem badges appear.

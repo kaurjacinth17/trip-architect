@@ -120,6 +120,7 @@ function CuratedDestination({ id }: { id: string }) {
           </dl>
           <div className="row">
             <Link className="btn pri" to={`/new?dest=${d.id}`}>Plan a trip here</Link>
+            <Link className="btn" to={`/destinations/${d.id}/guide`}>City Guide</Link>
             <button type="button" className="btn" aria-pressed={cmp.includes(d.id)} onClick={() => toggle(d.id)}>{cmp.includes(d.id) ? 'In comparison' : 'Add to compare'}</button>
           </div>
         </div>

@@ -17,7 +17,7 @@ export function useTripView(raw: Trip | undefined): Trip | undefined {
   useEffect(() => {
     if (!raw) return;
     const now = Date.now();
-    const due = [...raw.plan.flatMap((d) => d.items), ...raw.wish].filter((x) => x.gid && lites[x.gid]?.location && (x.lat == null || !x.coordsFetchedAt || now - x.coordsFetchedAt >= COORD_REFRESH_MS));
+    const due = [...raw.plan.flatMap((d) => d.items), ...raw.wish, ...raw.stays].filter((x) => x.gid && lites[x.gid]?.location && (x.lat == null || !x.coordsFetchedAt || now - x.coordsFetchedAt >= COORD_REFRESH_MS));
     if (due.length) useTrips.getState().refresh(raw.id, (t) => { for (const x of due) setItemCoords(t, x.gid!, lites[x.gid!].location!, now); });
   }, [raw, lites]);
 
@@ -39,6 +39,11 @@ export function useTripView(raw: Trip | undefined): Trip | undefined {
       if (!x.gid || x.t) continue;
       x.t = lites[x.gid]?.name || (live === 'live' ? 'Loading place…' : 'Saved place (connect to load its name)');
       x.nameLive = true;
+    }
+    for (const s of t.stays) {
+      if (!s.gid || s.name) continue;
+      s.name = lites[s.gid]?.name || (live === 'live' ? 'Loading hotel…' : 'Saved hotel (connect to load its name)');
+      s.nameLive = true;
     }
     return t;
   }, [raw, lites, gids.length, live]);

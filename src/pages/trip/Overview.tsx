@@ -117,7 +117,7 @@ export function Overview({ t, A, fix, goDay }: TabProps) {
           if (!v) return null;
           return (
             <div className="card grid" style={{ gap: 8 }} key={id}>
-              <div className="row between"><h3>{v.name}</h3><Link className="small" to={`/destinations/${id}`}>{v.curated ? 'Full guide' : 'Destination page'}</Link></div>
+              <div className="row between"><h3>{v.name}</h3><span className="row" style={{ gap: 10 }}><Link className="small" to={`/destinations/${id}`}>{v.curated ? 'Full guide' : 'Destination page'}</Link><Link className="small" to={`/destinations/${id}/guide?trip=${t.id}`}>City Guide</Link></span></div>
               <p className="small"><b>Best time:</b> {v.bestTime}</p>
               {v.curated && <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>{v.curated.tips.slice(0, 3).map((x) => <li key={x}>{x}</li>)}</ul>}
               {!v.cost && <p className="small muted">No cost basis for {v.name} yet: <Link to={`/destinations/${id}`}>add your own daily figures</Link> to include it in budget estimates.</p>}

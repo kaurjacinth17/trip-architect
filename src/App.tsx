@@ -13,6 +13,7 @@ import { Privacy, Terms } from './pages/Legal';
 import { LiveDataBanner } from './components/LiveDataBanner';
 
 const Destination = lazy(() => import('./pages/Destination'));
+const CityGuide = lazy(() => import('./pages/guide/CityGuide'));
 const TripPage = lazy(() => import('./pages/trip/TripPage'));
 const Print = lazy(() => import('./pages/Print'));
 const Shared = lazy(() => import('./pages/Shared'));
@@ -70,6 +71,7 @@ export function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/destinations/:id" element={<Destination />} />
+                <Route path="/destinations/:id/guide" element={<CityGuide />} />
                 <Route path="/compare" element={<Compare />} />
                 <Route path="/new" element={<NewTrip />} />
                 <Route path="/trips" element={<Trips />} />

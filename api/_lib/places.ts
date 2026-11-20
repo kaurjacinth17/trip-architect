@@ -10,7 +10,11 @@ export const MASKS = {
   /** Place Details Pro: name + coordinates for a place saved in a trip (names are never stored) */
   lite: 'id,displayName,location,primaryType,types,googleMapsUri,businessStatus',
   /** Text Search Enterprise: list rows with rating, review count, price level and open-now */
-  search: 'places.id,places.displayName,places.types,places.primaryType,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours.openNow,places.googleMapsUri,places.addressComponents,places.shortFormattedAddress,places.businessStatus,nextPageToken',
+  search: 'places.id,places.displayName,places.types,places.primaryType,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours.openNow,places.regularOpeningHours.periods,places.accessibilityOptions.wheelchairAccessibleEntrance,places.googleMapsUri,places.addressComponents,places.shortFormattedAddress,places.businessStatus,nextPageToken',
+  /** Place Details Enterprise: the detail drawer */
+  details: 'id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus',
+  /** Place Details Enterprise + Atmosphere: the drawer for restaurants and cafés (adds veg-friendly and summary) */
+  detailsFood: 'id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus,servesVegetarianFood,editorialSummary',
   /** Place Details Enterprise + Atmosphere: fallback destination overview */
   editorial: 'id,editorialSummary',
 } as const;
@@ -36,6 +40,22 @@ export interface GPlace {
   businessStatus?: string;
   timeZone?: { id?: string };
   editorialSummary?: { text?: string };
+  regularOpeningHours?: { periods?: GPeriod[]; weekdayDescriptions?: string[] };
+  accessibilityOptions?: { wheelchairAccessibleEntrance?: boolean };
+  formattedAddress?: string;
+  websiteUri?: string;
+  nationalPhoneNumber?: string;
+  internationalPhoneNumber?: string;
+  servesVegetarianFood?: boolean;
+  photos?: { name: string; widthPx?: number; heightPx?: number; authorAttributions?: { displayName?: string; uri?: string; photoUri?: string }[]; googleMapsUri?: string }[];
+}
+
+export interface GPeriod { open: { day: number; hour: number; minute: number }; close?: { day: number; hour: number; minute: number } }
+
+/** Opening periods in minutes of the week (Sunday 00:00 = 0). No close = open 24 hours. */
+export function mapPeriods(periods?: GPeriod[]) {
+  if (!periods) return undefined;
+  return periods.map((p) => ({ open: p.open.day * 1440 + p.open.hour * 60 + p.open.minute, close: p.close ? p.close.day * 1440 + p.close.hour * 60 + p.close.minute : null }));
 }
 
 const PRICE: Record<string, number> = {
@@ -68,8 +88,29 @@ export function mapPlace(p: GPlace) {
     areaHint: areaOf(p),
     address: p.shortFormattedAddress,
     closed: p.businessStatus === 'CLOSED_PERMANENTLY' ? 'permanently' as const : p.businessStatus === 'CLOSED_TEMPORARILY' ? 'temporarily' as const : undefined,
+    hours: mapPeriods(p.regularOpeningHours?.periods),
+    wheelchair: p.accessibilityOptions?.wheelchairAccessibleEntrance,
   };
 }
+
+export function mapDetails(p: GPlace) {
+  return {
+    ...mapPlace(p),
+    address: p.formattedAddress,
+    website: p.websiteUri,
+    phone: p.nationalPhoneNumber || p.internationalPhoneNumber,
+    phoneIntl: p.internationalPhoneNumber,
+    weekdayHours: p.regularOpeningHours?.weekdayDescriptions,
+    veg: p.servesVegetarianFood,
+    summary: p.editorialSummary?.text,
+    photos: (p.photos || []).slice(0, 6).map((ph) => ({
+      name: ph.name, width: ph.widthPx, height: ph.heightPx, googleMapsUri: ph.googleMapsUri,
+      authors: (ph.authorAttributions || []).map((a) => ({ name: a.displayName || 'Google Maps user', uri: a.uri, photoUri: a.photoUri })),
+    })),
+  };
+}
+export type MappedDetails = ReturnType<typeof mapDetails>;
+export const PhotoNameSchema = z.string().regex(/^places\/[A-Za-z0-9_-]{10,300}\/photos\/[A-Za-z0-9_-]{10,1000}$/, 'Invalid photo name');
 export type MappedPlace = ReturnType<typeof mapPlace>;
 
 export function mapDestination(p: GPlace) {

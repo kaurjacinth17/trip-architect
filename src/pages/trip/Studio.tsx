@@ -10,6 +10,7 @@ import {
   type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
 } from '@dnd-kit/core';
 import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { WarningCard } from '../../components/Cards';
 import { BEST, CATS, LIB_CATS, paceOf } from '../../data/constants';
 import { D, PL } from '../../data/destinations';
@@ -465,6 +466,7 @@ function Panel({ t, A, di, ind, fix }: { t: Trip; A: TripAnalysis; di: number; i
     };
     body = (
       <>
+        <Link className="btn sm" to={`/destinations/${day.dest}/guide?trip=${t.id}&day=${di}`}>City Guide for {destName(t, day.dest)}: restaurants, hotels, filters</Link>
         <input type="text" placeholder="Search places" value={lq} aria-label="Search places" onChange={(e) => set({ lq: e.target.value })} />
         <div className="row" style={{ gap: 6 }} role="group" aria-label="Category">
           {LIB_CATS.map(([k, l]) => (
