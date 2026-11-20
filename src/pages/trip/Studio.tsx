@@ -1,7 +1,12 @@
 // Itinerary Studio: day rail, hanging-time timeline and side panel (reference `tPlan` + `panel`), with
 // @dnd-kit drag and drop that follows the reference `drop` handler's semantics.
+import { destName, destView } from '../../engine/dest';
+import { poolFromLive } from '../../engine/livePool';
+import { usePlaceList } from '../../lib/live';
+import { DestinationSearch } from '../../components/DestinationSearch';
+import { Modal } from '../../components/Modal';
 import {
-  DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors,
+  DndContext, DragOverlay, MeasuringStrategy, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors,
   type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
 } from '@dnd-kit/core';
 import { useState, type ReactNode } from 'react';
@@ -30,12 +35,24 @@ interface Indicator { over: string | null; before: boolean }
 
 const PRIORITY: Record<DropData['kind'], number> = { day: 0, wish: 1, blk: 2, list: 3 };
 /** Only count droppables under the pointer; prefer a day or the wishlist over a block, and a block over the list. */
-const collide: CollisionDetection = (args) =>
-  pointerWithin(args).sort((a, b) => {
+const collide: CollisionDetection = (args) => {
+  // Sticky targets (day rail, Wishlist tab) don't move when the page auto-scrolls mid-drag, so test the pointer
+  // against where they actually are on screen right now.
+  const p = args.pointerCoordinates;
+  if (p) {
+    for (const c of args.droppableContainers) {
+      const kind = (c.data.current as DropData | undefined)?.kind;
+      if (kind !== 'day' && kind !== 'wish') continue;
+      const r = c.node.current?.getBoundingClientRect();
+      if (r && r.width && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom) return [{ id: c.id, data: { droppableContainer: c, value: 0 } }];
+    }
+  }
+  return pointerWithin(args).sort((a, b) => {
     const ka = (args.droppableContainers.find((c) => c.id === a.id)?.data.current as DropData | undefined)?.kind ?? 'list';
     const kb = (args.droppableContainers.find((c) => c.id === b.id)?.data.current as DropData | undefined)?.kind ?? 'list';
     return PRIORITY[ka] - PRIORITY[kb];
   });
+};
 
 function pointerY(e: DragMoveEvent | DragEndEvent): number {
   const a = e.activatorEvent as MouseEvent & TouchEvent;
@@ -115,7 +132,9 @@ export default function Studio({ t, A, fix, goDay: _goDay }: TabProps) {
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collide} onDragStart={onStart} onDragMove={onMove} onDragEnd={onEnd} onDragCancel={reset}
+    // Drop targets in the day rail and the side-panel tabs are `position: sticky`: while auto-scrolling, dnd-kit
+    // would assume they moved with the page, so they're re-measured throughout the drag.
+    <DndContext sensors={sensors} collisionDetection={collide} measuring={{ droppable: { strategy: MeasuringStrategy.Always } }} onDragStart={onStart} onDragMove={onMove} onDragEnd={onEnd} onDragCancel={reset}
       accessibility={{
         screenReaderInstructions: { draggable: 'Drag with a mouse, or press and hold on touch screens. Keyboard users can reorder with the ↑ and ↓ buttons.' },
         announcements: {
@@ -159,7 +178,7 @@ function DayButton({ t, A, i, on, over }: { t: Trip; A: TripAnalysis; i: number;
           {c > 0 && <i className="c" aria-label={plural(c, 'caution')}>{c}</i>}
         </span>
       </span>
-      <span className="lbl">{date ? fmtD(date) + ' · ' : ''}{d.label || D[d.dest]?.name || ''}</span>
+      <span className="lbl">{date ? fmtD(date) + ' · ' : ''}{d.label || destName(t, d.dest)}</span>
       <div className={'meter' + (ratio > 1.1 ? ' bad' : ratio > 1 ? ' warn' : '')}><i style={{ width: Math.min(100, ratio * 100) + '%' }} /></div>
       <span className="tiny muted">{hm(s.actMin)} planned</span>
     </button>
@@ -260,6 +279,7 @@ function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
   const flagged = new Set(W.filter((w) => w.lvl === 'alert' && w.id).map((w) => w.id));
   const date = dayDate(t, di);
   const set = useUI((s) => s.set);
+  const [pickDest, setPickDest] = useState(false);
   const action = (fn: (tt: Trip) => false | void, msg: string) => mut(t.id, fn, msg, true);
 
   return (
@@ -273,11 +293,13 @@ function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
         </div>
         <DayTitle key={t.id + di} t={t} di={di} />
         <div className="row" style={{ gap: 6 }}>
-          {t.dests.length > 1 && (
-            <select value={day.dest} style={{ width: 'auto' }} aria-label="Base for this day" onChange={(e) => mut(t.id, (tt) => { tt.plan[di].dest = e.target.value; })}>
-              {t.dests.map((id) => <option key={id} value={id}>{D[id]?.name}</option>)}
-            </select>
-          )}
+          <select value={day.dest} style={{ width: 'auto' }} aria-label="Destination for this day" onChange={(e) => {
+            if (e.target.value === '__new') { setPickDest(true); return; }
+            mut(t.id, (tt) => { tt.plan[di].dest = e.target.value; });
+          }}>
+            {t.dests.map((id) => <option key={id} value={id}>{destName(t, id)}</option>)}
+            <option value="__new">Another destination…</option>
+          </select>
           <button type="button" className="btn sm" onClick={onAddCustom}>Add custom activity</button>
           <button type="button" className="btn sm" onClick={() => set({ ptab: 'lib' })}>Add from library</button>
           <button type="button" className="btn sm" title="Remove gaps and add travel buffers" onClick={() => action((tt) => { const d = tt.plan[di]; if (!d.items.length) return false; tidy(d); }, 'Times tidied')}>Tidy times</button>
@@ -313,6 +335,20 @@ function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
           </div>
         )}
       </TimelineDrop>
+      {pickDest && (
+        <Modal title={`Destination for Day ${di + 1}`} onClose={() => setPickDest(false)}>
+          <h2>Destination for Day {di + 1}</h2>
+          <p className="small muted">Pick any place. It’s added to the trip’s route and this day moves there; nothing else changes.</p>
+          <DestinationSearch autoFocus exclude={t.dests} onPick={(d) => {
+            setPickDest(false);
+            mut(t.id, (tt) => {
+              if (!tt.dests.includes(d.key)) tt.dests.push(d.key);
+              if (d.record) tt.destRecords = { ...(tt.destRecords || {}), [d.key]: d.record };
+              tt.plan[di].dest = d.key;
+            }, `Day ${di + 1} is now in ${d.name}`, true);
+          }} />
+        </Modal>
+      )}
       <p className="tiny muted" style={{ marginTop: 14 }}>Drag blocks to reorder or drop them on another day (press and hold on touch screens); ↑ and ↓ reorder from the keyboard. Edit has duplicate and move to wishlist. Times only ever move later on their own; use Tidy times to close gaps.</p>
     </div>
   );
@@ -349,7 +385,7 @@ function LibItem({ t, pid, inPlan, dist, onAdd }: { t: Trip; pid: string; inPlan
     <div ref={setNodeRef} {...listeners} className="li" data-drag="lib" style={isDragging ? { opacity: 0.4 } : undefined}>
       <div>
         <div className="nm">{p.n}{inPlan && <> <span className="tag f">Planned</span></>}</div>
-        <div className="mt">{CATS[p.cat][0]} · {hm(p.d)} · {p.c ? inr(p.c) : 'Free'}{dist != null ? ` · ${fmtDist(dist)} away` : ''}{t.dests.length > 1 ? ' · ' + D[p.dest].name : ''}</div>
+        <div className="mt">{CATS[p.cat][0]} · {hm(p.d)} · {p.c ? inr(p.c) : 'Free'}{dist != null ? ` · ${fmtDist(dist)} away` : ''}{t.dests.length > 1 ? ' · ' + destName(t, p.dest) : ''}</div>
       </div>
       <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
         <button type="button" className="btn sm icon" aria-label={`Save ${p.n} to wishlist`} title="Save to wishlist"
@@ -416,7 +452,7 @@ function Panel({ t, A, di, ind, fix }: { t: Trip; A: TripAnalysis; di: number; i
   }
   if (ptab === 'lib') {
     const inPlan = new Set(t.plan.flatMap((d) => d.items.map((x) => x.pid)).filter(Boolean));
-    const cen = dayCentre(day);
+    const cen = dayCentre(day, t);
     const q = lq.toLowerCase();
     const list = t.dests.flatMap((id) => D[id]?.pl || [])
       .filter((p) => (lcat === 'all' || p.cat === lcat || (lcat === 'food' && p.cat === 'cafe')) && (!q || (p.n + ' ' + p.desc + ' ' + p.area).toLowerCase().includes(q)))
@@ -442,9 +478,10 @@ function Panel({ t, A, di, ind, fix }: { t: Trip; A: TripAnalysis; di: number; i
             <div><button type="button" className="btn sm ghost" onClick={() => set({ slot: null })}>Cancel</button></div>
           </div>
         )}
+        {destView(t, day.dest)?.kind === 'google' && <LiveLibrary t={t} di={di} q={q} cen={cen} />}
         <div className="lib">
           {list.length ? list.map(({ p, d }) => <LibItem key={p.pid} t={t} pid={p.pid} inPlan={inPlan.has(p.pid)} dist={d} onAdd={() => libAdd(p.pid)} />)
-            : <p className="small muted">No places match.</p>}
+            : destView(t, day.dest)?.kind === 'google' ? null : <p className="small muted">No places match.</p>}
         </div>
       </>
     );
@@ -460,5 +497,42 @@ function Panel({ t, A, di, ind, fix }: { t: Trip; A: TripAnalysis; di: number; i
       </div>
       {body}
     </>
+  );
+}
+
+/** Live Famous attractions for a non-curated day destination (one search, on opening the Places tab). */
+function LiveLibrary({ t, di, q, cen }: { t: Trip; di: number; q: string; cen: { lat: number; lng: number } | null }) {
+  const day = t.plan[di];
+  const v = destView(t, day.dest);
+  const res = usePlaceList(v, 'famous');
+  const { slot, set } = useUI();
+  const inPlan = new Set([...t.plan.flatMap((d) => d.items), ...t.wish].map((x) => x.gid).filter(Boolean));
+  if (!v) return null;
+  if (res.isLoading) return <p className="small muted">Loading places in {v.name}…</p>;
+  if (!res.data) return <p className="small muted">Live places for {v.name} aren’t available right now. Add a custom activity instead.</p>;
+  const pool = poolFromLive(v.key, res.data.places);
+  const rows = pool.filter((p) => !q || p.n.toLowerCase().includes(q)).map((p) => ({ p, d: km(p, cen), src: res.data!.places.find((x) => x.id === p.gid)! }));
+  const add = (p: (typeof pool)[number]) => {
+    const at = slot;
+    set({ slot: null });
+    mut(t.id, (tt) => { placeOnDay(tt, di, itemFromPlace(p), at); }, `${p.n} added to Day ${di + 1}`, true);
+  };
+  return (
+    <div className="lib gbox">
+      <div className="row between"><b className="small">Top places in {v.name}</b><span className="gmaps-attr" translate="no">Google Maps</span></div>
+      {rows.map(({ p, d, src }) => (
+        <div className="li" key={p.pid}>
+          <div>
+            <div className="nm">{p.n}{inPlan.has(p.gid) && <> <span className="tag f">Planned</span></>}</div>
+            <div className="mt">{CATS[p.cat][0]} · {hm(p.d)} (default){src.rating != null ? ` · ★ ${src.rating.toFixed(1)} (${(src.userRatingCount || 0).toLocaleString('en-IN')})` : ''}{d != null ? ` · ${fmtDist(d)} away` : ''}</div>
+          </div>
+          <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
+            <button type="button" className="btn sm icon" aria-label={`Save ${p.n} to wishlist`} title="Save to wishlist"
+              onClick={() => mut(t.id, (tt) => { if (tt.wish.some((w) => w.gid === p.gid)) return false; tt.wish.push(itemFromPlace(p)); }, 'Saved to wishlist')}>♡</button>
+            <button type="button" className="btn sm pri" aria-label={`Add ${p.n}`} onClick={() => add(p)}>Add</button>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

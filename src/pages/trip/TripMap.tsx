@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { destView } from '../../engine/dest';
 import MapView, { type LL, type Pin } from '../../components/MapView';
 import { CATS, DAYC } from '../../data/constants';
 import { D, PL } from '../../data/destinations';
@@ -34,7 +35,7 @@ export default function TripMap({ t, goDay }: TabProps) {
     if (L.lib) t.dests.forEach((id) => D[id]?.pl.filter((p) => !inPlan.has(p.pid)).forEach((p) => pts.push({ id: p.pid, lat: p.lat, lng: p.lng, col: '#6b7a70', lab: p.n, kind: 'idea' })));
     if (L.stay) t.stays.filter(geo).forEach((s) => pts.push({ id: s.id, lat: s.lat!, lng: s.lng!, kind: 'stay', lab: s.name }));
     const focus = fd !== 'all' ? t.plan[fd]?.dest : null;
-    const areas = t.dests.filter((id) => !focus || id === focus).flatMap((id) => D[id]?.areas.map((a) => ({ name: a[0], lat: a[2], lng: a[3] })) || []);
+    const areas = t.dests.filter((id) => !focus || id === focus).flatMap((id) => destView(t, id)?.areas.map((a) => ({ name: a[0], lat: a[2], lng: a[3] })) || []);
     if (!fitTo.length) fitTo.push(...areas);
     return { pts, routes, areas, fitTo: fd === 'all' && t.dests.length > 1 ? null : fitTo };
   }, [t, L, fd]);

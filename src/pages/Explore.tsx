@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { DestinationSearch } from '../components/DestinationSearch';
 import { DestCard } from '../components/Cards';
 import { MONTHS, MOODS } from '../data/constants';
 import { DESTS } from '../data/destinations';
@@ -12,6 +13,7 @@ import { useUI } from '../store/ui';
 export function Explore() {
   useTitle('Explore destinations');
   const [params, setParams] = useSearchParams();
+  const nav = useNavigate();
   const { mood, q, len, set } = useUI();
   const cmp = useTrips((s) => s.compare.cmp);
 
@@ -36,8 +38,13 @@ export function Explore() {
     <>
       <h1>Where to next?</h1>
       <p className="muted" style={{ marginTop: 8 }}>Browse by mood, compare a few, then plan. Budgets are on-ground estimates per person (stay on a twin share, food, local transport, key entry fees), excluding travel to get there.</p>
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', marginTop: 20, gap: 12 }}>
-        <input type="text" placeholder="Search destinations or places, e.g. ‘sunset’ or ‘fort’" value={q} onChange={(e) => set({ q: e.target.value })} aria-label="Search destinations" />
+      <div className="card" style={{ marginTop: 20 }}>
+        <DestinationSearch label="Go anywhere: search any city, town, hill station, island, region or national park" onPick={(d) => nav(`/destinations/${d.key}`)} />
+      </div>
+      <h2 style={{ marginTop: 28 }}>Hand-written guides</h2>
+      <p className="muted small" style={{ marginTop: 6 }}>Eight destinations with curated places, visit timings and editor’s picks.</p>
+      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', marginTop: 14, gap: 12 }}>
+        <input type="text" placeholder="Filter the guides or their places, e.g. ‘sunset’ or ‘fort’" value={q} onChange={(e) => set({ q: e.target.value })} aria-label="Filter curated guides" />
         <select value={len} onChange={(e) => set({ len: e.target.value as typeof len })} aria-label="Trip length">
           <option value="any">Any trip length</option>
           <option value="short">Weekend (2–3 days)</option>

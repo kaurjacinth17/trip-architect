@@ -6,13 +6,16 @@ import { isAct, travellers } from '../../engine/schedule';
 import type { BudgetKey } from '../../engine/types';
 import { inr, plural, sum, todayISO, uid } from '../../engine/util';
 import { mut } from '../../lib/actions';
+import { useRates } from '../../lib/live';
+import { inrOf, money, toINR } from '../../engine/currency';
+import { FX_SUPPORTED } from '../../data/currencies';
 import { toast } from '../../store/toast';
 import type { TabProps } from './TripPage';
 
 export function Budget({ t }: TabProps) {
   const n = travellers(t), days = t.plan.length;
   const planned = plannedTotal(t);
-  const spent = sum(t.expenses, (e) => e.amt);
+  const spent = sum(t.expenses, inrOf);
   const total = t.budgetTotal || planned;
   const by = (k: BudgetKey) => spentBy(t, k);
   const pct = total ? Math.round((spent / total) * 100) : 0;
@@ -20,13 +23,17 @@ export function Budget({ t }: TabProps) {
   const settle = settleUp(bal);
   const actCost = sum(t.plan.flatMap((d) => d.items.filter(isAct)), (x) => x.c) * n;
   const today = todayISO();
-  const [ex, setEx] = useState({ amt: '', cat: 'travel' as BudgetKey, date: t.start && today < t.start ? t.start : today, paid: 0, among: t.travelers.map((_, i) => i), note: '' });
+  const [ex, setEx] = useState({ amt: '', cur: t.currency || 'INR', cat: 'travel' as BudgetKey, date: t.start && today < t.start ? t.start : today, paid: 0, among: t.travelers.map((_, i) => i), note: '' });
   const among = ex.among.filter((i) => i < t.travelers.length);
 
+  const foreign = ex.cur !== 'INR' || t.expenses.some((e) => e.cur && e.cur !== 'INR');
+  const fx = useRates(foreign);
+  const exInr = toINR(+ex.amt || 0, ex.cur, fx.data);
   const addExp = () => {
     const amt = +ex.amt;
     if (!(amt > 0)) { toast('Enter an amount'); return; }
-    mut(t.id, (tt) => { tt.expenses.push({ id: uid(), amt, cat: ex.cat, date: ex.date, paid: Math.min(ex.paid, tt.travelers.length - 1), among, note: ex.note.trim() }); }, 'Expense added', true);
+    if (ex.cur !== 'INR' && exInr == null) { toast('Exchange rates aren’t available right now; enter the amount in ₹'); return; }
+    mut(t.id, (tt) => { tt.expenses.push({ id: uid(), amt, cur: ex.cur, inr: exInr ?? amt, ...(ex.cur !== 'INR' && fx.data ? { fxDate: fx.data.date } : {}), cat: ex.cat, date: ex.date, paid: Math.min(ex.paid, tt.travelers.length - 1), among, note: ex.note.trim() }); }, 'Expense added', true);
     setEx({ ...ex, amt: '', note: '' });
   };
   const stats: [string, string, string][] = [
@@ -93,7 +100,8 @@ export function Budget({ t }: TabProps) {
         <form className="card grid" style={{ gap: 10 }} onSubmit={(e) => { e.preventDefault(); addExp(); }}>
           <h3>Add an expense</h3>
           <div className="grid g2">
-            <label className="f">Amount (₹)<input type="number" min={0} step={10} value={ex.amt} onChange={(e) => setEx({ ...ex, amt: e.target.value })} /></label>
+            <label className="f">Amount ({ex.cur})<input type="number" min={0} step={0.01} value={ex.amt} onChange={(e) => setEx({ ...ex, amt: e.target.value })} /></label>
+            <label className="f">Currency<select value={ex.cur} onChange={(e) => setEx({ ...ex, cur: e.target.value })}>{[...new Set(['INR', t.currency || 'INR', ...FX_SUPPORTED])].map((c) => <option key={c}>{c}</option>)}</select></label>
             <label className="f">Category<select value={ex.cat} onChange={(e) => setEx({ ...ex, cat: e.target.value as BudgetKey })}>{BCATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
             <label className="f">Date<input type="date" value={ex.date} onChange={(e) => setEx({ ...ex, date: e.target.value })} /></label>
             <label className="f">Paid by<select value={ex.paid} onChange={(e) => setEx({ ...ex, paid: +e.target.value })}>{t.travelers.map((x, i) => <option key={i} value={i}>{x}</option>)}</select></label>
@@ -108,6 +116,7 @@ export function Budget({ t }: TabProps) {
               ))}
             </div>
           </fieldset>
+          {ex.cur !== 'INR' && <p className="tiny muted">{exInr != null ? `≈ ${inr(exInr)} at the ${fx.data?.date} rate (European Central Bank, via Frankfurter). The ₹ value is fixed when you add it.` : fx.isLoading ? 'Loading exchange rate…' : 'Exchange rate unavailable right now.'}</p>}
           <label className="f">Note<input type="text" placeholder="e.g. Amber Fort tickets" value={ex.note} onChange={(e) => setEx({ ...ex, note: e.target.value })} /></label>
           <button type="submit" className="btn pri">Add expense</button>
         </form>
@@ -124,7 +133,7 @@ export function Budget({ t }: TabProps) {
                   <tr key={e.id}>
                     <td>{e.date}</td><td>{e.note || '—'}</td><td>{BCATS.find((b) => b[0] === e.cat)?.[1]}</td><td>{t.travelers[e.paid] || '?'}</td>
                     <td>{(e.among?.length ? e.among : t.travelers.map((_, i) => i)).length} people</td>
-                    <td className="n"><b>{inr(e.amt)}</b></td>
+                    <td className="n"><b>{inr(inrOf(e))}</b>{e.cur && e.cur !== 'INR' && <><br /><span className="tiny muted">{money(e.amt, e.cur)}{e.fxDate ? ` · rate of ${e.fxDate}` : ''}</span></>}</td>
                     <td><button type="button" className="btn sm ghost" aria-label={`Delete expense ${e.note || inr(e.amt)}`} onClick={() => mut(t.id, (tt) => { tt.expenses = tt.expenses.filter((x) => x.id !== e.id); }, 'Expense deleted', true)}>Delete</button></td>
                   </tr>
                 ))}

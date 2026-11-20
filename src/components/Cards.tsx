@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { D } from '../data/destinations';
+import { sceneFor } from '../lib/destScene';
 import { readiness } from '../engine/readiness';
 import { travellers } from '../engine/schedule';
 import { estRange } from '../engine/season';
@@ -60,7 +60,7 @@ export function DestCard({ d }: { d: Dest }) {
 
 export function TripCard({ t }: { t: Trip }) {
   const r = readiness(t);
-  const d = D[t.dests[0]];
+  const d = sceneFor(t, t.dests[0]);
   return (
     <Link className="card dcard" to={`/trips/${t.id}/overview`} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="art" style={{ height: 110 }}>{d && <Scene d={d} h={140} />}</div>

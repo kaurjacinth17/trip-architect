@@ -6,7 +6,7 @@ import type { FactorKey, Trip, TripFix } from '../engine/types';
 import { applyFix as runFix } from '../engine/fixes';
 import { buildSampleTrip } from '../engine/generate';
 import { normaliseTrip } from '../engine/share';
-import { purgeExpiredCoords } from '../engine/coords';
+import { purgeExpiredCoords, stripLiveNames } from '../engine/coords';
 import { clone, uid } from '../engine/util';
 
 export const STORAGE_KEY = 'trip-architect-v1';
@@ -41,6 +41,8 @@ interface TripsState {
   duplicate: (id: string) => Trip | null;
   importTrip: (raw: unknown) => Trip;
   setCompare: (fn: (c: ComparePrefs) => ComparePrefs) => void;
+  /** Background data refresh (e.g. Google coordinates): no undo entry, doesn't count as an edit. */
+  refresh: (id: string, fn: (t: Trip) => void) => void;
 }
 
 function stamp(t: Trip) {
@@ -125,6 +127,7 @@ export const useTrips = create<TripsState>()(
         const r = fn(t);
         if (r === false || r === null) return r;
         stamp(t);
+        if (JSON.stringify(t).includes('"nameLive"')) Object.assign(t, stripLiveNames(t)); // never persist live names
         set((s) => {
           const stack = [...(s.undo[id] || []), JSON.stringify(cur)].slice(-UNDO_LIMIT);
           return { trips: { ...s.trips, [id]: t }, undo: { ...s.undo, [id]: stack } };
@@ -188,6 +191,14 @@ export const useTrips = create<TripsState>()(
         return get().add(t);
       },
 
+      refresh(id, fn) {
+        const cur = get().trips[id];
+        if (!cur) return;
+        const t = clone(cur);
+        fn(t);
+        set((s) => ({ trips: { ...s.trips, [id]: t } }));
+      },
+
       setCompare(fn) {
         set((s) => ({ compare: fn(s.compare) }));
       },
@@ -199,7 +210,7 @@ export const useTrips = create<TripsState>()(
       migrate,
       // The sample trip stays out of storage until the user edits it.
       partialize: (s): Persisted => ({
-        trips: Object.fromEntries(Object.entries(s.trips).filter(([, t]) => !(t.sample && !t.touched))),
+        trips: Object.fromEntries(Object.entries(s.trips).filter(([, t]) => !(t.sample && !t.touched)).map(([k, t]) => [k, stripLiveNames(t)])),
         compare: s.compare,
       }),
       merge: (persisted, current) => {

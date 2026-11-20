@@ -4,7 +4,12 @@ import { WarningCard } from '../../components/Cards';
 import { CommitInput, CommitTextarea, Stepper } from '../../components/Inputs';
 import { Modal } from '../../components/Modal';
 import { PACE } from '../../data/constants';
-import { D } from '../../data/destinations';
+import { destName, destView } from '../../engine/dest';
+import { moveDest, previewRemoveDest } from '../../engine/destOps';
+import type { Trip } from '../../engine/types';
+import { DestinationSearch, type PickedDest } from '../../components/DestinationSearch';
+import { InsertDestDialog } from '../../components/InsertDestDialog';
+import { FX_SUPPORTED } from '../../data/currencies';
 import { byLevel } from '../../engine/checks';
 import { readiness } from '../../engine/readiness';
 import { isAct } from '../../engine/schedule';
@@ -79,6 +84,11 @@ export function Overview({ t, A, fix, goDay }: TabProps) {
             </label>
           </div>
           <div className="row between"><b className="small">Days</b><Stepper value={t.plan.length} onStep={(v) => changeDays(t.id, v)} less="Remove last day" more="Add a day" /></div>
+          <label className="f">Currency for new expenses
+            <select value={t.currency || 'INR'} onChange={(e) => set((x) => { x.currency = e.target.value; })}>
+              {[...new Set(['INR', t.currency || 'INR', ...t.dests.map((k) => destView(t, k)?.currency || 'INR'), ...FX_SUPPORTED])].map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </label>
           <label className="f">Total budget (₹)<CommitInput type="number" min={0} step={500} value={t.budgetTotal || ''} onCommit={(v) => set((x) => { x.budgetTotal = Math.max(0, +v || 0); })} /></label>
           <div className="grid" style={{ gap: 6 }}>
             <b className="small">Travellers</b>
@@ -100,16 +110,19 @@ export function Overview({ t, A, fix, goDay }: TabProps) {
         </div>
       </div>
 
+      <DestinationsManager t={t} />
       <section className="sec grid g2">
         {t.dests.map((id) => {
-          const d = D[id];
-          return d ? (
+          const v = destView(t, id);
+          if (!v) return null;
+          return (
             <div className="card grid" style={{ gap: 8 }} key={id}>
-              <div className="row between"><h3>{d.name}</h3><Link className="small" to={`/destinations/${id}`}>Full guide</Link></div>
-              <p className="small"><b>Best time:</b> {d.bestTime}</p>
-              <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>{d.tips.slice(0, 3).map((x) => <li key={x}>{x}</li>)}</ul>
+              <div className="row between"><h3>{v.name}</h3><Link className="small" to={`/destinations/${id}`}>{v.curated ? 'Full guide' : 'Destination page'}</Link></div>
+              <p className="small"><b>Best time:</b> {v.bestTime}</p>
+              {v.curated && <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>{v.curated.tips.slice(0, 3).map((x) => <li key={x}>{x}</li>)}</ul>}
+              {!v.cost && <p className="small muted">No cost basis for {v.name} yet: <Link to={`/destinations/${id}`}>add your own daily figures</Link> to include it in budget estimates.</p>}
             </div>
-          ) : null;
+          );
         })}
       </section>
       <section className="sec">
@@ -139,3 +152,46 @@ export function Overview({ t, A, fix, goDay }: TabProps) {
   );
 }
 
+
+/** Route: reorder, remove (with preview) and add destinations anywhere in the trip. */
+function DestinationsManager({ t }: { t: Trip }) {
+  const [adding, setAdding] = useState<PickedDest | null>(null);
+  const [search, setSearch] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const rm = removing ? (() => { try { return previewRemoveDest(t, removing); } catch (e) { return { err: (e as Error).message } as const; } })() : null;
+  return (
+    <section className="sec card grid" style={{ gap: 10 }}>
+      <div className="row between"><h3>Destinations</h3><button type="button" className="btn sm pri" onClick={() => setSearch(true)}>Add destination</button></div>
+      <ol className="stops" aria-label="Route">
+        {t.dests.map((k, i) => (
+          <li key={k}>
+            <span className="tag f">Stop {i + 1}</span> <b>{destName(t, k)}</b>
+            <span className="small muted">{plural(t.plan.filter((d) => d.dest === k).length, 'day')}</span>
+            <span className="row" style={{ gap: 2, marginLeft: 'auto' }}>
+              <button type="button" className="btn sm icon" aria-label={`Move ${destName(t, k)} earlier`} disabled={i === 0} onClick={() => mut(t.id, (x) => { Object.assign(x, moveDest(x, i, i - 1)); }, 'Route reordered; days moved with it', true)}>↑</button>
+              <button type="button" className="btn sm icon" aria-label={`Move ${destName(t, k)} later`} disabled={i === t.dests.length - 1} onClick={() => mut(t.id, (x) => { Object.assign(x, moveDest(x, i, i + 1)); }, 'Route reordered; days moved with it', true)}>↓</button>
+              <button type="button" className="btn sm icon" aria-label={`Remove ${destName(t, k)}`} disabled={t.dests.length < 2} onClick={() => setRemoving(k)}>×</button>
+            </span>
+          </li>
+        ))}
+      </ol>
+      {search && (
+        <Modal title="Add a destination" onClose={() => setSearch(false)}>
+          <h2>Add a destination</h2>
+          <DestinationSearch autoFocus exclude={t.dests} onPick={(d) => { setSearch(false); setAdding(d); }} />
+        </Modal>
+      )}
+      {adding && <InsertDestDialog t={t} destKey={adding.key} record={adding.record} onClose={() => setAdding(null)} />}
+      {removing && rm && (
+        <Modal title={`Remove ${destName(t, removing)}?`} onClose={() => setRemoving(null)}>
+          <h2>Remove {destName(t, removing)}?</h2>
+          {'err' in rm ? <p>{rm.err}</p> : <p>{rm.summary}</p>}
+          <div className="row">
+            <button type="button" className="btn" onClick={() => setRemoving(null)}>Keep it</button>
+            {!('err' in rm) && <button type="button" className="btn acc" onClick={() => { mut(t.id, (x) => { Object.assign(x, rm.trip); }, `${destName(t, removing)} removed`, true); setRemoving(null); }}>Remove</button>}
+          </div>
+        </Modal>
+      )}
+    </section>
+  );
+}

@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { destView, routeName } from '../engine/dest';
+import { sceneFor } from '../lib/destScene';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Scene } from '../components/Scene';
 import { BCATS, CATS, DAYC, paceOf } from '../data/constants';
-import { D } from '../data/destinations';
 import { plannedTotal } from '../engine/budget';
 import { geo } from '../engine/geo';
 import { travellers } from '../engine/schedule';
@@ -38,7 +39,7 @@ export default function Shared() {
       g.forEach((x, k) => pts.push({ id: x.id, lat: x.lat, lng: x.lng, num: k + 1, col, lab: x.t, kind: 'plan' }));
       routes.push({ col, pts: g });
     });
-    const areas = t.dests.flatMap((id) => D[id]?.areas.map((a) => ({ name: a[0], lat: a[2], lng: a[3] })) || []);
+    const areas = t.dests.flatMap((id) => destView(t, id)?.areas.map((a) => ({ name: a[0], lat: a[2], lng: a[3] })) || []);
     return { pts, routes, areas };
   }, [t]);
 
@@ -64,7 +65,7 @@ export default function Shared() {
       toast('That doesn’t look like a Trip Architect trip');
     }
   };
-  const d0 = D[t.dests[0]];
+  const d0 = sceneFor(t, t.dests[0]);
 
   return (
     <div className="ro">
@@ -74,7 +75,7 @@ export default function Shared() {
       </div>
       <section className="hero">
         <div className="txt">
-          <span className="kicker">{t.dests.map((id) => D[id]?.name).join(' → ')}</span>
+          <span className="kicker">{routeName(t)}</span>
           <h1>{t.name}</h1>
           <p className="muted">{t.start ? fmtD(dayDate(t, 0)) + ' – ' + fmtD(dayDate(t, t.plan.length - 1)) + ' · ' : 'Flexible dates · '}{plural(t.plan.length, 'day')} · {plural(n, 'traveller')} · {paceOf(t.pace).l} pace</p>
         </div>

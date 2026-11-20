@@ -104,8 +104,10 @@ test.describe('itinerary drag and drop', () => {
     await page.waitForTimeout(120); // dnd-kit ignores clicks for 50 ms after a drop
     expect(await titles(page)).toContain(name);
 
-    // Drop a block onto the wishlist tab.
+    // Drop a block onto the wishlist tab (short Checks panel open, so the sticky panel has room to stay in view).
+    await page.getByRole('tab', { name: /Checks/ }).click();
     const wishBefore = await page.getByRole('tab', { name: /Wishlist/ }).textContent();
+    await page.locator('.tl .blk').last().evaluate((e) => e.scrollIntoView({ block: 'center' })); // clear of the toast
     const b2 = (await page.locator('.tl .blk').last().boundingBox())!;
     const wt = (await page.getByRole('tab', { name: /Wishlist/ }).boundingBox())!;
     await page.mouse.move(b2.x + 40, b2.y + 20);

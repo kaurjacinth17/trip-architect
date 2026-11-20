@@ -1,6 +1,6 @@
 // Session-only UI state (reference `S.ui` / `S.sel` / `S.wz`). Not persisted.
 import { create } from 'zustand';
-import type { PaceKey, Prefs } from '../engine/types';
+import type { DestRecord, PaceKey, Prefs } from '../engine/types';
 
 export type PanelTab = 'checks' | 'lib' | 'wish';
 export interface MapLayers { plan: boolean; wish: boolean; lib: boolean; stay: boolean; area: boolean }
@@ -9,6 +9,8 @@ export interface Wizard {
   pre: string;
   step: number;
   dests: string[];
+  /** Records for non-curated stops */
+  records: Record<string, DestRecord>;
   start: string;
   days: number;
   group: string;

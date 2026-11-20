@@ -1,6 +1,7 @@
 // Realism checks, ported rule-for-rule from the reference `analyzeDay` / `analyzeTrip`.
 import { BCATS, MONTHS, WDL, paceOf } from '../data/constants';
 import { PL } from '../data/destinations';
+import { inrOf } from './currency';
 import { destView } from './dest';
 import { seasonOf } from './season';
 import { geo, km, nnKm, pathKm, travelMin } from './geo';
@@ -123,7 +124,7 @@ export function analyzeTrip(t: Trip): TripAnalysis {
   if (t.budgetTotal && planned > t.budgetTotal) {
     W.push({ lvl: 'alert', k: 'budget', title: 'Planned costs exceed your budget', body: `Categories add up to ${inr(planned)} against a budget of ${inr(t.budgetTotal)}: ${inr(planned - t.budgetTotal)} over.`, tab: 'budget' });
   }
-  const spent = (k: string) => sum(t.expenses.filter((e) => e.cat === k), (e) => e.amt);
+  const spent = (k: string) => sum(t.expenses.filter((e) => e.cat === k), inrOf);
   for (const [k, l] of BCATS) {
     const s = spent(k);
     if (t.budget[k] > 0 && s > t.budget[k]) W.push({ lvl: 'caution', k: 'cat', title: `${l} is over plan`, body: `Spent ${inr(s)} of ${inr(t.budget[k])}.`, tab: 'budget' });

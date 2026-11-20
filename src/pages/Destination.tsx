@@ -16,11 +16,14 @@ import { useTitle } from '../lib/hooks';
 import { toast } from '../store/toast';
 import { tripList, useTrips } from '../store/trips';
 import type { Pin } from '../components/MapView';
+import LiveDestination from './LiveDestination';
+import { CURATED_PLACE_IDS } from '../data/curatedPlaceIds';
 
 const MapView = lazy(() => import('../components/MapView'));
 
-export function mapsLink(lat: number, lng: number) {
-  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+/** Google Maps link; uses the place ID when the curated place has been linked (scripts/link-curated.ts). */
+export function mapsLink(lat: number, lng: number, placeId?: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}${placeId ? `&query_place_id=${placeId}` : ''}`;
 }
 
 /** "Add to my trip": choose a trip (adds to its wishlist) or start a new one. Reference `addToTrip`. */
@@ -62,7 +65,7 @@ function PlaceDialog({ p, onClose, onAdd }: { p: Place; onClose: () => void; onA
       <p className="small muted">{CATS[p.cat][0]} · {p.area} · {hm(p.d)} · {p.c ? inr(p.c) + ' pp' : 'Free'}</p>
       <p>{p.desc}</p>
       <div className="row">
-        <a className="btn" href={mapsLink(p.lat, p.lng)} target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
+        <a className="btn" href={mapsLink(p.lat, p.lng, CURATED_PLACE_IDS[p.pid])} target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
         <button type="button" className="btn pri" onClick={onAdd}>Add to my trip</button>
         <button type="button" className="btn ghost" onClick={onClose}>Close</button>
       </div>
@@ -72,6 +75,11 @@ function PlaceDialog({ p, onClose, onAdd }: { p: Place; onClose: () => void; onA
 
 export default function Destination() {
   const { id = '' } = useParams();
+  if (!D[id] && /^[gc]:/.test(id)) return <LiveDestination destKey={id} />;
+  return <CuratedDestination id={id} />;
+}
+
+function CuratedDestination({ id }: { id: string }) {
   const d = D[id];
   useTitle(d ? d.name : 'Not found');
   const { cmp, toggle } = useCompareToggle();

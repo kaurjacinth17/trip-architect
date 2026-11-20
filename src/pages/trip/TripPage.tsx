@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo } from 'react';
+import { routeName } from '../../engine/dest';
+import { useTripView } from '../../lib/useTripView';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Missing } from '../../components/Shell';
 import { paceOf } from '../../data/constants';
-import { D } from '../../data/destinations';
 import { analyzeTrip } from '../../engine/checks';
 import { travellers } from '../../engine/schedule';
 import { dayDate, fmtD } from '../../engine/time';
@@ -33,7 +34,8 @@ export interface TabProps {
 
 export default function TripPage() {
   const { id = '', tab = 'overview' } = useParams();
-  const t = useTrips((s) => s.trips[id]);
+  const raw = useTrips((s) => s.trips[id]);
+  const t = useTripView(raw);
   const canUndo = useTrips((s) => !!s.undo[id]?.length);
   const enterTrip = useUI((s) => s.enterTrip);
   const nav = useNavigate();
@@ -62,7 +64,7 @@ export default function TripPage() {
         </div>
       </div>
       <div style={{ marginTop: 10 }}>
-        <span className="kicker">{t.dests.map((d) => D[d]?.name).join(' → ')}{t.sample ? ' · sample trip, edit freely' : ''}</span>
+        <span className="kicker">{routeName(t)}{t.sample ? ' · sample trip, edit freely' : ''}</span>
         <h1 style={{ marginTop: 4 }}>{t.name}</h1>
         <p className="muted" style={{ marginTop: 6 }}>
           {t.start ? fmtD(dayDate(t, 0)) + ' – ' + fmtD(dayDate(t, t.plan.length - 1)) + ' · ' : 'Flexible dates · '}

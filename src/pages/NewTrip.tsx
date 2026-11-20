@@ -3,6 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Stepper } from '../components/Inputs';
 import { GROUPS, MONTHS, PACE } from '../data/constants';
 import { D, DESTS } from '../data/destinations';
+import { DestinationSearch } from '../components/DestinationSearch';
+import { destName, destView } from '../engine/dest';
+import { poolFromLive } from '../engine/livePool';
+import { fetchPools } from '../lib/live';
+import { useDestCache } from '../store/dests';
+import { useState } from 'react';
 import { buildTrip, DEFAULT_PREFS, wizardEstimate } from '../engine/generate';
 import { seasonOf } from '../engine/season';
 import { fmtD, hm } from '../engine/time';
@@ -16,9 +22,11 @@ import { useUI, type Wizard } from '../store/ui';
 const TITLES = ['Where are you going?', 'When are you going?', 'Who is travelling?', 'What kind of trip do you want?', 'What’s the budget?', 'Ready to build'];
 
 export function newWizard(pre: string): Wizard {
-  const ok = !!(pre && D[pre]);
+  const rec = /^[gc]:/.test(pre) ? useDestCache.getState().records[pre] : undefined;
+  const ok = !!(pre && (D[pre] || rec));
+  const records = rec ? { [pre]: rec } : {};
   return {
-    pre, step: 1, dests: ok ? [pre] : [], start: '', days: ok ? D[pre].days[0] + 1 : 4, group: 'couple', n: 2, names: ['', ''],
+    pre, step: 1, dests: ok ? [pre] : [], records, start: '', days: ok ? (destView({ destRecords: records }, pre)?.days[0] ?? 2) + 1 : 4, group: 'couple', n: 2, names: ['', ''],
     pace: 'balanced', prefs: { ...DEFAULT_PREFS }, bMode: 'total', budget: '', name: '',
   };
 }
@@ -30,6 +38,7 @@ export function NewTrip() {
   const wz = useUI((s) => s.wz);
   const setUI = useUI((s) => s.set);
   const nav = useNavigate();
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!wz || wz.pre !== pre) setUI({ wz: newWizard(pre) });
@@ -41,22 +50,48 @@ export function NewTrip() {
   const st = w.step;
   const names = (n: number) => Array.from({ length: n }, (_, i) => w.names[i] || '');
 
+  const W = { destRecords: w.records };
+  const nameOf = (k: string) => destName(W, k);
+  const setDests = (dests: string[], records = w.records) =>
+    upd({ dests, records, days: dests.length ? Math.max(w.days, Math.min(14, sum(dests, (x) => destView({ destRecords: records }, x)?.days[0] ?? 2))) : w.days });
   const toggleDest = (id: string) => {
     const dests = [...w.dests];
     const i = dests.indexOf(id);
     if (i >= 0) dests.splice(i, 1);
     else dests.push(id);
-    upd({ dests, days: dests.length ? Math.max(w.days, Math.min(14, sum(dests, (x) => D[x].days[0]))) : w.days });
+    setDests(dests);
+  };
+  const moveStop = (i: number, d: number) => {
+    const j = i + d;
+    if (j < 0 || j >= w.dests.length) return;
+    const dests = [...w.dests];
+    [dests[i], dests[j]] = [dests[j], dests[i]];
+    upd({ dests });
   };
 
-  const create = () => {
+  const create = async () => {
+    setCreating(true);
     const travelers = w.names.map((x, i) => x.trim() || (i === 0 ? 'You' : `Traveller ${i + 1}`));
     const b = +w.budget || 0;
-    const t = buildTrip({ dests: w.dests, start: w.start, days: w.days, group: w.group, travelers, pace: w.pace, prefs: w.prefs, budgetTotal: w.bMode === 'total' ? b : b * w.n, name: w.name.trim() });
+    // Live destinations: one Famous and one Restaurants search each (only now, on Create).
+    const pools: Record<string, ReturnType<typeof poolFromLive>> = {};
+    const lunchPools: Record<string, Awaited<ReturnType<typeof fetchPools>>['restaurants']> = {};
+    let liveMissing = false;
+    for (const key of w.dests) {
+      const v = destView(W, key);
+      if (!v || v.kind !== 'google') continue;
+      const p = await fetchPools(v);
+      if (!p.famous.length) liveMissing = true;
+      pools[key] = poolFromLive(key, p.famous);
+      lunchPools[key] = p.restaurants;
+    }
+    const abroad = w.dests.map((k) => destView(W, k)).find((v) => v && !v.inIndia);
+    const t = buildTrip({ dests: w.dests, start: w.start, days: w.days, group: w.group, travelers, pace: w.pace, prefs: w.prefs, budgetTotal: w.bMode === 'total' ? b : b * w.n, name: w.name.trim(), destRecords: w.records, pools, lunchPools, currency: abroad?.currency || 'INR' });
     useTrips.getState().add(t);
     setUI({ wz: null, cur: t.id, day: 0, slot: null, ptab: 'checks', mapDay: 'all' });
+    setCreating(false);
     nav(`/trips/${t.id}/itinerary`);
-    toast('Trip created. Everything here is editable.');
+    toast(liveMissing ? 'Trip created. Live suggestions weren’t available, so some days start empty: add places from the wishlist or your own.' : 'Trip created. Everything here is editable.');
   };
 
   let body: React.ReactNode = null;
@@ -76,12 +111,31 @@ export function NewTrip() {
             );
           })}
         </div>
+        <div className="card" style={{ marginTop: 18 }}>
+          <DestinationSearch label="Or search anywhere: any city, town, hill station, island, region or park" exclude={w.dests}
+            onPick={(d) => setDests([...w.dests, d.key], d.record ? { ...w.records, [d.key]: d.record } : w.records)} />
+        </div>
+        {w.dests.length > 0 && (
+          <ol className="stops" aria-label="Your route">
+            {w.dests.map((k, i) => (
+              <li key={k}>
+                <span className="tag f">Stop {i + 1}</span> <b>{nameOf(k)}</b>
+                <span className="row" style={{ gap: 2, marginLeft: 'auto' }}>
+                  <button type="button" className="btn sm icon" aria-label={`Move ${nameOf(k)} earlier`} disabled={i === 0} onClick={() => moveStop(i, -1)}>↑</button>
+                  <button type="button" className="btn sm icon" aria-label={`Move ${nameOf(k)} later`} disabled={i === w.dests.length - 1} onClick={() => moveStop(i, 1)}>↓</button>
+                  <button type="button" className="btn sm icon" aria-label={`Remove ${nameOf(k)}`} onClick={() => toggleDest(k)}>×</button>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
         <p className="small" style={{ marginTop: 14 }}>Haven’t decided yet? <Link to="/compare">Compare destinations</Link> against what you care about.</p>
       </>
     );
   }
   if (st === 2) {
-    const rec = w.dests.length ? [sum(w.dests, (id) => D[id].days[0]), sum(w.dests, (id) => D[id].days[1])] : null;
+    const views = w.dests.map((id) => destView(W, id)).filter((v): v is NonNullable<typeof v> => !!v);
+    const rec = views.length && views.every((v) => v.daysKnown) ? [sum(views, (v) => v.days[0]), sum(views, (v) => v.days[1])] : null;
     const m = w.start ? new Date(w.start + 'T00:00:00').getMonth() + 1 : 0;
     body = (
       <>
@@ -99,13 +153,13 @@ export function NewTrip() {
         {rec && w.days < rec[0] && (
           <div className="warn caution" style={{ marginTop: 14 }}>
             <b>That’s tight</b>
-            <p>{w.dests.map((id) => D[id].name).join(' + ')} usually needs at least {rec[0]} days. The planner will prioritise must-sees and leave the rest in your wishlist.</p>
+            <p>{w.dests.map(nameOf).join(' + ')} usually needs at least {rec[0]} days. The planner will prioritise must-sees and leave the rest in your wishlist.</p>
           </div>
         )}
-        {m > 0 && w.dests.filter((id) => seasonOf(D[id], m) === 'poor').map((id) => (
-          <div className="warn caution" style={{ marginTop: 14 }} key={id}>
-            <b>{MONTHS[m - 1]} is off-season for {D[id].name}</b>
-            <p>{D[id].bestTime}</p>
+        {m > 0 && views.filter((v) => (v.good.length || v.poor.length) && seasonOf(v, m) === 'poor').map((v) => (
+          <div className="warn caution" style={{ marginTop: 14 }} key={v.key}>
+            <b>{MONTHS[m - 1]} is off-season for {v.name}</b>
+            <p>{v.bestTime}</p>
           </div>
         ))}
       </>
@@ -166,7 +220,8 @@ export function NewTrip() {
     );
   }
   if (st === 5) {
-    const est = wizardEstimate(w);
+    const est = wizardEstimate({ ...w, destRecords: w.records });
+    const noBasis = w.dests.map((k) => destView(W, k)).filter((v) => v && !v.cost).map((v) => v!.name);
     body = (
       <div className="grid g2">
         <div className="grid" style={{ gap: 12 }}>
@@ -182,7 +237,7 @@ export function NewTrip() {
         <div className="card">
           <span className="small muted">Estimated on-ground cost</span>
           <div className="stat"><b>{inr(est)}</b><span>for {plural(w.n, 'traveller')}, {plural(w.days, 'day')} · {inr(est / w.n)} pp</span></div>
-          <p className="tiny muted" style={{ marginTop: 8 }}>Stay, food, local transport, key entry fees, plus a little for shopping and extras. Excludes your train or flight to get there.</p>
+          <p className="tiny muted" style={{ marginTop: 8 }}>Stay, food, local transport, key entry fees, plus a little for shopping and extras. Excludes your train or flight to get there.{noBasis.length ? ` Doesn’t include ${noBasis.join(', ')}: there’s no cost basis yet; add your own figures on its destination page or in the Budget tab.` : ''}</p>
         </div>
       </div>
     );
@@ -192,11 +247,11 @@ export function NewTrip() {
       <>
         <div className="grid g2">
           <label className="f">Trip name
-            <input type="text" value={w.name} placeholder={w.dests.map((id) => D[id].name).join(' + ') + ' getaway'} onChange={(e) => upd({ name: e.target.value })} />
+            <input type="text" value={w.name} placeholder={w.dests.map(nameOf).join(' + ') + ' getaway'} onChange={(e) => upd({ name: e.target.value })} />
           </label>
         </div>
         <dl className="kv" style={{ marginTop: 16, fontSize: 15 }}>
-          <dt>Route</dt><dd>{w.dests.map((id) => D[id].name).join(' → ') || '—'}</dd>
+          <dt>Route</dt><dd>{w.dests.map(nameOf).join(' → ') || '—'}</dd>
           <dt>When</dt><dd>{w.start ? fmtD(new Date(w.start + 'T00:00:00')) : 'Flexible'} · {plural(w.days, 'day')}</dd>
           <dt>Who</dt><dd>{GROUPS.find((g) => g[0] === w.group)?.[1]} · {plural(w.n, 'traveller')}</dd>
           <dt>Pace</dt><dd>{PACE[w.pace].l}</dd>
@@ -221,7 +276,7 @@ export function NewTrip() {
         {st > 1 && <button type="button" className="btn" onClick={() => step(-1)}>Back</button>}
         {st < 6
           ? <button type="button" className="btn pri" onClick={() => step(1)} disabled={!can}>Continue</button>
-          : <button type="button" className="btn acc" onClick={create} disabled={!w.dests.length}>Create my trip</button>}
+          : <button type="button" className="btn acc" onClick={() => void create()} disabled={!w.dests.length || creating}>{creating ? 'Building your plan…' : 'Create my trip'}</button>}
       </div>
     </>
   );

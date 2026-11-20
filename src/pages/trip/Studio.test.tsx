@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { makeQueryClient } from '../../lib/query';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Toast } from '../../components/Toast';
 import { buildSampleTrip } from '../../engine/generate';
@@ -9,10 +11,12 @@ import TripPage from './TripPage';
 
 function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes><Route path="/trips/:id/:tab" element={<TripPage />} /></Routes>
-      <Toast />
-    </MemoryRouter>,
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes><Route path="/trips/:id/:tab" element={<TripPage />} /></Routes>
+        <Toast />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

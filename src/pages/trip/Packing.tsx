@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { destName } from '../../engine/dest';
 import { CommitInput } from '../../components/Inputs';
 import { PACK_CATS } from '../../data/constants';
-import { D } from '../../data/destinations';
 import { rebuildPack } from '../../engine/packing';
 import { uid } from '../../engine/util';
 import { mut } from '../../lib/actions';
@@ -24,7 +24,7 @@ export function Packing({ t }: TabProps) {
     <>
       <div className="row between">
         <div>
-          <h2>{t.dests.map((id) => D[id]?.name).join(' + ')} packing list</h2>
+          <h2>{t.dests.map((id) => destName(t, id)).join(' + ')} packing list</h2>
           <p className="muted small" style={{ marginTop: 6 }}>{done} of {t.pack.length} items packed · built from your destinations{t.start ? ', dates' : ''} and trip length</p>
         </div>
         <div className="row" style={{ gap: 6 }}>

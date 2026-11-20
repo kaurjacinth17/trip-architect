@@ -76,6 +76,8 @@ export interface Item {
   gid?: string;
   /** When lat/lng were fetched from Google (Places coordinates may be cached for at most 30 days). */
   coordsFetchedAt?: number;
+  /** Transient: `t` holds a live Google name for display. Never persisted (stripped on save/export). */
+  nameLive?: boolean;
   t: string;
   cat: Cat;
   /** start, minutes after midnight */

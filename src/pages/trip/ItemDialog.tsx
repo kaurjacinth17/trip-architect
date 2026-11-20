@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { destName } from '../../engine/dest';
 import { Modal } from '../../components/Modal';
 import { CATS } from '../../data/constants';
-import { D, PL } from '../../data/destinations';
+import { PL } from '../../data/destinations';
 import { cascade, cascadeOrdered, findItem, pullItem } from '../../engine/schedule';
 import { fromHHMM, toHHMM } from '../../engine/time';
 import type { Cat, Item, Trip } from '../../engine/types';
@@ -11,11 +12,11 @@ import { useUI } from '../../store/ui';
 
 /** Add/edit an activity (reference `itemForm` + `saveItem`/`saveNew`/`dupItem`/`toWish`/`delItem`). */
 export function ItemDialog({ t, x, di, isNew, onClose }: { t: Trip; x: Item; di: number; isNew: boolean; onClose: () => void }) {
-  const [f, setF] = useState({ t: x.t, day: di, cat: x.cat, s: toHHMM(x.s), d: String(x.d), c: String(x.c || 0), pri: x.pri, n: x.n });
+  const [f, setF] = useState({ t: x.nameLive ? '' : x.t, day: di, cat: x.cat, s: toHHMM(x.s), d: String(x.d), c: String(x.c || 0), pri: x.pri, n: x.n });
   const upd = (p: Partial<typeof f>) => setF({ ...f, ...p });
   const fields = (base: Item): Item => ({
     ...base,
-    t: f.t.trim() || (isNew ? 'Custom activity' : base.t),
+    t: f.t.trim() || (isNew ? 'Custom activity' : base.gid ? '' : base.t),
     cat: f.cat,
     d: Math.max(5, +f.d || (isNew ? 60 : base.d)),
     c: Math.max(0, +f.c || 0),
@@ -65,7 +66,7 @@ export function ItemDialog({ t, x, di, isNew, onClose }: { t: Trip; x: Item; di:
     <Modal title={title} onClose={onClose}>
       <form className="grid" style={{ gap: 14 }} onSubmit={(e) => { e.preventDefault(); save(); }}>
         <h2>{title}</h2>
-        <label className="f">Title<input type="text" value={f.t} onChange={(e) => upd({ t: e.target.value })} /></label>
+        <label className="f">Title<input type="text" value={f.t} placeholder={x.nameLive ? x.t : ''} onChange={(e) => upd({ t: e.target.value })} /></label>
         <div className="grid g2">
           <label className="f">Day
             <select value={f.day} onChange={(e) => upd({ day: +e.target.value })}>
@@ -88,7 +89,8 @@ export function ItemDialog({ t, x, di, isNew, onClose }: { t: Trip; x: Item; di:
           </label>
         </div>
         <label className="f">Notes<textarea value={f.n} placeholder="Tickets, meeting point, booking reference" onChange={(e) => upd({ n: e.target.value })} /></label>
-        {x.pid && <p className="tiny muted">From the {x.dest ? D[x.dest]?.name : ''} library · {PL[x.pid]?.desc || ''}</p>}
+        {x.pid && <p className="tiny muted">From the {destName(t, x.dest)} guide · {PL[x.pid]?.desc || ''}</p>}
+        {x.gid && <p className="tiny muted">Linked to a place on <span className="gmaps-attr" translate="no">Google Maps</span>. Leave the title empty to always show its current name.</p>}
         <div className="row between">
           <div className="row">
             {!isNew && <>

@@ -238,3 +238,30 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 /* live-data status bar */
 .livebar{background:var(--caution-soft);color:var(--ink);border-bottom:1px solid var(--line);padding:10px clamp(16px,3.5vw,48px);font-size:14px;font-weight:600}
 .legal{max-width:760px}.legal h2{margin-top:18px;font-size:22px}.legal ul{margin:0;padding-left:20px;display:grid;gap:6px}
+/* destination search */
+.dsearch{position:relative}
+.dsugg{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 4px);margin:0;padding:6px;list-style:none;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.14);max-height:min(60vh,420px);overflow:auto}
+.dsugg li{display:grid;gap:2px;padding:10px 12px;border-radius:8px;cursor:pointer;min-height:44px}
+.dsugg li.on{background:var(--forest-soft)}
+.dsugg li.dcustom{border-top:1px solid var(--line);margin-top:4px}
+.dsugg li.gattr{cursor:default;min-height:0;padding:4px 12px;text-align:right}
+.gattr span,.gmaps-attr{font-family:Roboto,system-ui,sans-serif;font-weight:400;font-size:12px;letter-spacing:normal;color:light-dark(#5e5e5e,#ffffff);white-space:nowrap}
+/* best-months chart */
+.bm-chart{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end;height:120px;margin-top:8px}
+.bm-col{display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative;outline:none}
+.bm-col i{display:block;background:var(--forest);border-radius:4px 4px 0 0;min-height:2px}
+.bm-col.rain i{background:light-dark(#1f6f8b,#7fb8cf)}
+.bm-col .tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:8px;white-space:nowrap;z-index:5;pointer-events:none}
+.bm-col:hover .tip,.bm-col:focus-visible .tip{display:block}
+.bm-col:focus-visible i{outline:2px solid var(--terra);outline-offset:2px}
+.bm-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin-top:4px;font-size:12px;text-align:center;color:var(--mute)}
+.bm-verdict{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin-top:4px;font-size:11px;text-align:center;font-weight:700}
+.bm-verdict .good{color:var(--forest)}.bm-verdict .poor{color:var(--alert)}
+.src{font-size:12px;color:var(--mute)}.src a{color:inherit}
+.stops{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:6px}
+.stops li{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);flex-wrap:wrap}
+.gbox{border:1px solid var(--line);border-radius:12px;padding:10px;background:light-dark(#fbfaf6,#1b2520)}
+/* keep the side panel's tabs (incl. the Wishlist drop target) visible while its list scrolls */
+.panel .ptabs{position:sticky;top:0;z-index:2;box-shadow:0 0 0 6px var(--bg)}
+.bm-verdict .narrow,.narrow-key{display:none}
+@media(max-width:600px){.bm-verdict .wide{display:none}.bm-verdict .narrow{display:inline}.narrow-key{display:block;margin-top:4px}}

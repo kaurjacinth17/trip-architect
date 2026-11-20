@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { D } from '../../data/destinations';
+import { destName, destView } from '../../engine/dest';
+import { useAreas } from '../../lib/live';
+import type { Trip } from '../../engine/types';
 import { km } from '../../engine/geo';
 import { isAct, travellers } from '../../engine/schedule';
 import type { Item, LatLng, StayStatus } from '../../engine/types';
@@ -15,7 +18,9 @@ export function Stays({ t }: TabProps) {
     if (!g.length || o.lat == null) return null;
     return sum(g, (x) => km(o, x)) / g.length;
   };
-  const areaOpts = t.dests.flatMap((id) => D[id]?.areas.map((a): [string, string] => [`${id}|${a[0]}`, `${a[0]}, ${D[id].name}`]) || []);
+  // Curated guides list their areas; other destinations offer the destination itself (stay coordinates are only
+  // kept for curated areas and custom pins, never copied from Google).
+  const areaOpts = t.dests.flatMap((id): [string, string][] => D[id] ? D[id].areas.map((a): [string, string] => [`${id}|${a[0]}`, `${a[0]}, ${D[id].name}`]) : [[`${id}|`, destName(t, id)]]);
   const rooms = Math.ceil(travellers(t) / 2);
   const blank = { name: '', area: areaOpts[0]?.[0] || '', price: '', nights: String(Math.max(1, t.plan.length - 1)), checkin: t.start, checkout: '', rating: '', link: '', notes: '' };
   const [f, setF] = useState(blank);
@@ -26,9 +31,10 @@ export function Stays({ t }: TabProps) {
     if (!name) { toast('Give the stay a name'); return; }
     const [dest, area] = f.area.split('|');
     const a = D[dest]?.areas.find((x) => x[0] === area);
+    const custom = t.destRecords?.[dest]?.kind === 'custom' ? t.destRecords[dest].center : null;
     const link = f.link.trim();
     mut(t.id, (tt) => {
-      tt.stays.push({ id: uid(), name, area, dest, lat: a?.[2] ?? null, lng: a?.[3] ?? null, price: +f.price || 0, nights: Math.max(1, +f.nights || 1), checkin: f.checkin, checkout: f.checkout, rating: +f.rating || 0, link: /^https?:\/\//i.test(link) ? link : '', notes: f.notes.trim(), status: 'shortlisted' });
+      tt.stays.push({ id: uid(), name, area: area || destName(tt, dest), dest, lat: a?.[2] ?? custom?.lat ?? null, lng: a?.[3] ?? custom?.lng ?? null, price: +f.price || 0, nights: Math.max(1, +f.nights || 1), checkin: f.checkin, checkout: f.checkout, rating: +f.rating || 0, link: /^https?:\/\//i.test(link) ? link : '', notes: f.notes.trim(), status: 'shortlisted' });
     }, 'Stay saved', true);
     setF({ ...blank, area: f.area });
   };
@@ -38,7 +44,7 @@ export function Stays({ t }: TabProps) {
       <div className="grid" style={{ gap: 16 }}>
         {t.dests.map((id) => {
           const d = D[id];
-          if (!d) return null;
+          if (!d) return <LiveAreaGuide key={id} t={t} id={id} avg={avg} />;
           const rows = d.areas.map((a) => ({ a, v: avg({ lat: a[2], lng: a[3] }, id) }));
           const best = rows.filter((r) => r.v != null).sort((x, y) => x.v! - y.v!)[0];
           return (
@@ -123,5 +129,32 @@ export function Stays({ t }: TabProps) {
         <div><button type="submit" className="btn pri">Save stay</button></div>
       </form>
     </>
+  );
+}
+
+/** Neighbourhoods of a non-curated destination from OpenStreetMap, ranked by distance to your planned places. */
+function LiveAreaGuide({ t, id, avg }: { t: Trip; id: string; avg: (o: LatLng, dest: string | null) => number | null }) {
+  const v = destView(t, id);
+  const q = useAreas(v);
+  if (!v) return null;
+  const rows = (q.data?.areas || []).map((a) => ({ a, v: avg(a.center, id) })).sort((x, y) => (x.v ?? 1e9) - (y.v ?? 1e9) || x.a.name.localeCompare(y.a.name));
+  const best = rows.find((r) => r.v != null);
+  return (
+    <div className="card">
+      <h3>Where to stay in {v.name}</h3>
+      {q.isLoading ? <p className="small muted" style={{ marginTop: 8 }}>Loading neighbourhoods…</p> : !rows.length ? <p className="small muted" style={{ marginTop: 8 }}>No neighbourhood data for {v.name}.</p> : (
+        <>
+          <div className="scroll" style={{ marginTop: 10, maxHeight: 420, overflow: 'auto' }}>
+            <table className="stack">
+              <thead><tr><th>Area</th><th>Type</th><th className="n">Avg. distance to your plans</th></tr></thead>
+              <tbody>{rows.map((r) => (
+                <tr key={r.a.name}><td><b>{r.a.name}</b>{r === best && <> <span className="tag f">Closest to your plan</span></>}</td><td>{r.a.kind || ''}</td><td className="n">{r.v != null ? r.v.toFixed(1) + ' km' : '—'}</td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <p className="src" style={{ marginTop: 6 }}>Areas © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a> (ODbL). Distances are straight-line, from each area’s centre.</p>
+        </>
+      )}
+    </div>
   );
 }

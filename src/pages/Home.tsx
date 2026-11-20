@@ -1,4 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { routeName } from '../engine/dest';
+import { sceneFor } from '../lib/destScene';
 import { DestCard, TripCard } from '../components/Cards';
 import { Scene } from '../components/Scene';
 import { MOODS } from '../data/constants';
@@ -20,7 +22,7 @@ function nextTrip(ts: Trip[]) {
 
 function TripHero({ t }: { t: Trip }) {
   const r = readiness(t);
-  const d = D[t.dests[0]];
+  const d = sceneFor(t, t.dests[0]);
   const until = daysUntil(t.start);
   const top = [...r.A.trip, ...r.A.days.flat()].sort(byLevel).slice(0, 3);
   return (
@@ -32,7 +34,7 @@ function TripHero({ t }: { t: Trip }) {
         </span>
         <h1>{t.name}</h1>
         <p className="muted">
-          {t.dests.map((id) => D[id]?.name).join(' → ')} · {plural(t.plan.length, 'day')} · {plural(travellers(t), 'traveller')}
+          {routeName(t)} · {plural(t.plan.length, 'day')} · {plural(travellers(t), 'traveller')}
           {t.start ? ' · from ' + fmtD(dayDate(t, 0)) : ''}
         </p>
         <div className="row" style={{ gap: 18 }}>

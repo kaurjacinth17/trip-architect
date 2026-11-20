@@ -34,8 +34,15 @@ export function setItemCoords(t: Trip, gid: string, loc: { lat: number; lng: num
 
 /** Strip Google coordinates (for share links and exports, which leave this app). */
 export function stripGoogleCoords(t: Trip): Trip {
-  const c = clone(t);
+  const c = stripLiveNames(t);
   for (const x of allItems(c)) if (x.gid) { x.lat = null; x.lng = null; delete x.coordsFetchedAt; }
   for (const r of Object.values(c.destRecords || {})) if (r.kind === 'google') { r.center = null; r.viewport = null; delete r.coordsFetchedAt; }
+  return c;
+}
+
+/** Remove live Google names that were put on items for display. */
+export function stripLiveNames(t: Trip): Trip {
+  const c = clone(t);
+  for (const x of allItems(c)) if (x.nameLive) { x.t = ''; delete x.nameLive; }
   return c;
 }

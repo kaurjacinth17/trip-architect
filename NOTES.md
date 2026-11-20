@@ -47,3 +47,38 @@ wishlists, budgets, packing lists, warnings, readiness scores and every one-clic
 - **Map tiles:** the default is `tile.openstreetmap.org`, which is not meant for heavy traffic (see README).
 - **Share links** carry the whole trip, so large trips make long links (a warning appears over 8,000 characters).
 - The dnd-kit keyboard sensor is deliberately not used: the ↑/↓ buttons are the keyboard path, as in the reference.
+
+## Upgrade notes (phases 2+)
+
+Judgement calls made while implementing the upgrade, so they can be reviewed:
+
+- **Destination names are stored; place names are not.** Google's policy says not to "copy and save business names,
+  addresses". A destination record stores the geographic name and region of a city/region/park the user picked
+  (needed for the route, print and offline), plus its place ID. Places *inside* a trip (attractions, restaurants,
+  hotels) store only their place ID; their names are fetched live and shown with `nameLive`, and are stripped before
+  anything is saved, exported or shared. A user-typed title is the user's own data and is stored.
+- **Coordinates:** Google coordinates carry `coordsFetchedAt`; refreshed after 25 days, deleted after 30, and
+  removed from share links and exported files (they're re-fetched from the place ID when opened).
+- **Areas:** Google's policy forbids using Places coordinates for point-in-polygon analysis, so places aren't
+  assigned to OSM neighbourhood polygons. OSM areas are listed with their own OSM centres; distances to "your plan"
+  are straight-line distances from those centres.
+- **Cost table:** built only from the curated guides of the same type (tier-2 = Jaipur + Udaipur, beach = Goa +
+  Pondicherry, hill = Manali, pilgrimage = Varanasi + Rishikesh). There is no curated metro or wildlife destination,
+  so those types (and everywhere abroad) ask the user for figures rather than showing an invented number.
+- **Destination type** is inferred only when unambiguous (national parks → wildlife); otherwise the user picks it.
+- **Recommended days** for a live destination are computed live from the Famous list (1 day per ~5 attractions
+  rated 4.2+ with 500+ reviews, clamped 1–7) and shown as "suggested"; they aren't stored, so the "usually needs N
+  days" check only applies to curated guides or days the user sets.
+- **Live starter plans** use default visit durations by place type and no entry costs (the data has none); every
+  value is editable.
+- **Autocomplete types:** Google allows 5. Chosen: `locality`, `administrative_area_level_1`,
+  `administrative_area_level_2`, `natural_feature`, `national_park`. Curated guides are always searchable too.
+- **Overpass:** `overpass-api.de` refused connections from the build sandbox, so `/api/areas` falls back to a
+  mirror and the URL is configurable (`OVERPASS_URL`). Verify on the preview.
+
+### Bugs found and fixed during the upgrade
+
+- `new URL('places:searchText', base)` parses `places:` as a URL scheme; the Google client now concatenates.
+- Drag and drop onto the sticky day rail or the Wishlist tab could miss after the page auto-scrolled mid-drag
+  (dnd-kit assumes droppables scroll with the page). Collision now uses their live on-screen position.
+- The side panel's tabs could scroll out of view inside the panel during a drag; they're now sticky.
