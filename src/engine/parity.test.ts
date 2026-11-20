@@ -8,7 +8,7 @@ import { analyzeTrip } from './checks';
 import { applyFix } from './fixes';
 import { buildTrip } from './generate';
 import { readiness } from './readiness';
-import type { PaceKey, Prefs, Tier, Trip, TripFix } from './types';
+import type { PaceKey, Prefs, Trip, TripFix } from './types';
 
 const file = path.resolve(__dirname, '../../trip-architect-reference.html');
 const has = fs.existsSync(file);
