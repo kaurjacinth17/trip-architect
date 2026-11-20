@@ -4,7 +4,8 @@ import { useTripView } from '../../lib/useTripView';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Missing } from '../../components/Shell';
 import { paceOf } from '../../data/constants';
-import { analyzeTrip } from '../../engine/checks';
+import { analyzeTrip, type CheckCtx } from '../../engine/checks';
+import { useCheckCtx } from '../../lib/checkCtx';
 import { travellers } from '../../engine/schedule';
 import { dayDate, fmtD } from '../../engine/time';
 import type { Fix, Trip, TripAnalysis } from '../../engine/types';
@@ -28,6 +29,7 @@ export type TabKey = (typeof TABS)[number][0];
 export interface TabProps {
   t: Trip;
   A: TripAnalysis;
+  ctx?: CheckCtx;
   fix: (f: Fix) => void;
   goDay: (di: number) => void;
 }
@@ -41,7 +43,9 @@ export default function TripPage() {
   const nav = useNavigate();
   useTitle(t ? t.name : 'Not found');
   useEffect(() => { if (t) enterTrip(t.id); }, [t, enterTrip]);
-  const A = useMemo(() => (t ? analyzeTrip(t) : null), [t]);
+  const ui = useUI();
+  const ctx = useCheckCtx(t, { day: ui.day, itinerary: tab === 'itinerary', liveTravel: ui.liveTravel });
+  const A = useMemo(() => (t ? analyzeTrip(t, ctx) : null), [t, ctx]);
   if (!t || !A) return <Missing />;
   if (!TABS.some(([k]) => k === tab)) return <Navigate to={`/trips/${id}/overview`} replace />;
 
@@ -52,7 +56,7 @@ export default function TripPage() {
   const fix = (f: Fix) => runFix(t.id, f, () => { if (tab !== 'itinerary') nav(`/trips/${id}/itinerary`); });
   const dalerts = sum(A.days, (d) => d.filter((w) => w.lvl === 'alert').length);
   const talerts = A.trip.filter((w) => w.lvl === 'alert').length;
-  const props: TabProps = { t, A, fix, goDay };
+  const props: TabProps = { t, A, fix, goDay, ctx };
 
   return (
     <>

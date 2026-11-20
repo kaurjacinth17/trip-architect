@@ -37,6 +37,13 @@ export function About() {
             <p>Overloaded days for your pace, overlapping blocks, transfers that don’t leave enough time, intercity jumps, long stretches without a break, missing lunch, very long or late days, zig-zag routes, places at the wrong time of day, weekday-only markets on the wrong day, budget gaps, off-season dates and more. Every warning is advice: fix it in one click, or ignore it.</p>
           </details>
           <details>
+            <summary>How do locks, opening hours and the hotel checks work?</summary>
+            <p><b>Locked blocks</b> (🔒) keep their time: pushing later items, Tidy times, Optimise route, one-click fixes and shifts all leave them alone, and anything that runs into one is flagged.</p>
+            <p><b>Opening hours</b> come live from Google Maps for the day you’re looking at (they aren’t stored), so hours checks appear once that day has loaded: closed that weekday, not open yet, or closing before your visit ends.</p>
+            <p><b>Hotel distance:</b> if the first stop of the day, or the way back at the end, is 40 minutes or more from the stay for that night (by our travel-time estimate, or Google’s when live travel times are on), you’ll see a note. Change a day’s start or end point in Day options.</p>
+            <p><b>Check-in and check-out days:</b> more than 2 hours of plans before noon on the day you arrive somewhere, or more than 2½ hours on the day you leave, gets a note, because you’ll likely have bags with you.</p>
+          </details>
+          <details>
             <summary>Who made the maps and pictures?</summary>
             <p>Map tiles: {TILE_ATTRIBUTION_TEXT}. Place pins use stored, approximate coordinates; open a place in Google Maps for streets and directions. The destination illustrations are original SVG drawings, not photos.</p>
           </details>

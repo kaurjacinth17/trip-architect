@@ -78,6 +78,11 @@ export interface Item {
   coordsFetchedAt?: number;
   /** Transient: `t` holds a live Google name for display. Never persisted (stripped on save/export). */
   nameLive?: boolean;
+  /** Locked blocks are never moved by cascade, Tidy, Optimise route, fixes or shifts. */
+  locked?: boolean;
+  booking?: { status: 'none' | 'needed' | 'booked'; ref?: string };
+  link?: string;
+  tags?: string[];
   t: string;
   cat: Cat;
   /** start, minutes after midnight */
@@ -99,7 +104,17 @@ export interface Day {
   dest: string;
   label: string;
   items: Item[];
+  /** Day start/end (minutes after midnight); defaults come from the pace */
+  start?: number;
+  end?: number;
+  /** Where the day starts/ends: the stay for that night (default), none, or a custom point */
+  startLoc?: DayLoc;
+  endLoc?: DayLoc;
+  /** Pace for this day only */
+  pace?: PaceKey;
 }
+
+export type DayLoc = { kind: 'hotel' } | { kind: 'none' } | { kind: 'point'; label: string; lat: number; lng: number };
 
 export interface Prefs {
   natureCity: number;
@@ -235,7 +250,8 @@ export type Fix =
   | { l: string; a: 'route'; di: number }
   | { l: string; a: 'toEvening'; di: number; id: string }
   | { l: string; a: 'moveTo'; di: number; id: string; v: number }
-  | { l: string; a: 'setAct'; v: number };
+  | { l: string; a: 'setAct'; v: number }
+  | { l: string; a: 'afterLock'; di: number; id: string; lockId: string };
 
 export type TripFix = Exclude<Fix, { a: 'ptab' }>;
 

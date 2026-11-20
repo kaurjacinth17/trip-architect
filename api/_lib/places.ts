@@ -15,6 +15,10 @@ export const MASKS = {
   details: 'id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus',
   /** Place Details Enterprise + Atmosphere: the drawer for restaurants and cafés (adds veg-friendly and summary) */
   detailsFood: 'id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus,servesVegetarianFood,editorialSummary',
+  /** Place Details Enterprise: opening hours and status for the open day's places (realism checks) */
+  hours: 'id,regularOpeningHours.periods,businessStatus',
+  /** Routes: Compute Routes Essentials (no traffic) */
+  routes: 'routes.duration,routes.distanceMeters',
   /** Place Details Enterprise + Atmosphere: fallback destination overview */
   editorial: 'id,editorialSummary',
 } as const;

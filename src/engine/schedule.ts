@@ -42,6 +42,7 @@ export function cascadeOrdered(day: Day) {
   const it = day.items;
   for (let i = 1; i < it.length; i++) {
     const a = it[i - 1], b = it[i];
+    if (b.locked) continue; // locked times never move; a clash shows up as a conflict alert
     const min = a.s + a.d + trm(a, b);
     if (b.s < min) b.s = up5(min);
   }
@@ -55,6 +56,7 @@ export function tidy(day: Day, start?: number) {
   let cur = start ?? it[0].s;
   it.forEach((x, i) => {
     if (i) cur += trm(it[i - 1], x);
+    if (x.locked) { cur = Math.max(cur, x.s + x.d); return; } // locked: keep its time, carry on after it
     x.s = up5(cur);
     cur = x.s + x.d;
   });
@@ -68,23 +70,75 @@ export function nextSlot(day: Day, item: Item): number | null {
   return up15(last.s + last.d + trm(last, item));
 }
 
-/** Reorder mapped items by nearest neighbour (unmapped items keep their slots) and re-time from the first start. */
-export function routeOrder(day: Day): boolean {
+/** Optional opening-hours test for route optimisation: false = closed at that minute, null = unknown. */
+export type OpenTest = (x: Item, minute: number) => boolean | null;
+
+/** Nearest-neighbour order from `from`, preferring places that are open on arrival when hours are known. */
+function nnFrom(from: Item | null, g: Item[], startMinute: number, open?: OpenTest): Item[] {
+  const left = [...g];
+  const out: Item[] = [];
+  let cur = from;
+  let clock = startMinute;
+  while (left.length) {
+    const ranked = left.map((x, i) => ({ x, i, d: cur && geo(cur) ? km(cur, x)! : 0 })).sort((a, b) => a.d - b.d);
+    const arrive = (c: { x: Item }) => clock + (cur ? trm(cur, c.x) : 0);
+    const pick = (open && ranked.find((c) => open(c.x, arrive(c)) !== false)) || ranked[0];
+    const x = left.splice(pick.i, 1)[0];
+    clock = arrive(pick) + x.d;
+    out.push(x);
+    cur = x;
+  }
+  return out;
+}
+
+/**
+ * Reorder mapped items by nearest neighbour (unmapped items keep their slots) and re-time from the first start.
+ * Locked items are anchors: only the items between them are reordered and re-timed.
+ */
+export function routeOrder(day: Day, open?: OpenTest): boolean {
   sortDay(day);
   const it = day.items;
   const g = it.filter(geo);
   if (g.length < 3) return false;
-  const start = it[0].s;
-  const order = nnOrder(g);
+  if (!it.some((x) => x.locked) && !open) {
+    const start = it[0].s;
+    const order = nnOrder(g);
+    const res: Item[] = [];
+    let gi = 0;
+    for (const x of it) res.push(geo(x) ? order[gi++] : x);
+    let cur = start;
+    res.forEach((x, i) => {
+      if (i) cur += trm(res[i - 1], x);
+      x.s = up5(cur);
+      cur = x.s + x.d;
+    });
+    day.items = res;
+    return true;
+  }
   const res: Item[] = [];
-  let gi = 0;
-  for (const x of it) res.push(geo(x) ? order[gi++] : x);
-  let cur = start;
-  res.forEach((x, i) => {
-    if (i) cur += trm(res[i - 1], x);
-    x.s = up5(cur);
-    cur = x.s + x.d;
-  });
+  let anchor: Item | null = null;
+  let seg: Item[] = [];
+  const flush = () => {
+    if (!seg.length) return;
+    const startClock = anchor ? anchor.s + anchor.d : seg[0].s;
+    const order = nnFrom(anchor && geo(anchor) ? anchor : null, seg.filter(geo), startClock, open);
+    let gi = 0;
+    const placed = seg.map((x) => (geo(x) ? order[gi++] : x));
+    let cur = startClock;
+    let prev = anchor;
+    placed.forEach((x, i) => {
+      if (prev && (i || anchor)) cur += trm(prev, x);
+      x.s = up5(cur);
+      cur = x.s + x.d;
+      prev = x;
+    });
+    res.push(...placed);
+    seg = [];
+  };
+  for (const x of it) {
+    if (x.locked) { flush(); res.push(x); anchor = x; } else seg.push(x);
+  }
+  flush();
   day.items = res;
   return true;
 }
@@ -136,7 +190,7 @@ export function pullItem(t: Trip, id: string) {
 }
 
 export function startFor(t: Trip, day: Day, x: Item): number {
-  return nextSlot(day, x) ?? paceOf(t.pace).start;
+  return nextSlot(day, x) ?? day.start ?? paceOf(day.pace || t.pace).start;
 }
 
 export function placeOnDay(t: Trip, di: number, x: Item, at?: number | null) {
@@ -181,6 +235,25 @@ export function placeAtExact(t: Trip, di: number, x: Item, at: number) {
   day.items.splice(idx, 0, x);
   for (let k = idx + 1; k < day.items.length; k++) {
     const a = day.items[k - 1], b = day.items[k];
+    if (b.locked) continue;
+    const min = a.s + a.d + trm(a, b);
+    if (b.s < min) b.s = up5(min);
+  }
+}
+
+/** Insert `x` directly after block `refId` (plus travel time); everything after it moves later if needed. */
+export function placeAfter(t: Trip, di: number, x: Item, refId: string) {
+  const day = t.plan[di];
+  sortDay(day);
+  const i = day.items.findIndex((y) => y.id === refId);
+  if (i < 0) { placeOnDay(t, di, x); return; }
+  const ref = day.items[i];
+  x.s = up5(ref.s + ref.d + trm(ref, x));
+  if (!x.dest) x.dest = day.dest;
+  day.items.splice(i + 1, 0, x);
+  for (let k = i + 2; k < day.items.length; k++) {
+    const a = day.items[k - 1], b = day.items[k];
+    if (b.locked) continue;
     const min = a.s + a.d + trm(a, b);
     if (b.s < min) b.s = up5(min);
   }

@@ -75,8 +75,8 @@ describe.runIf(has)('parity with the reference engine', () => {
 
     // Feed the SAME trip to both analysers.
     const t = canon(ref);
-    expect(canon(analyzeTrip(t))).toEqual(canon(R.analyzeTrip(structuredClone(t))));
-    const { A: _a, ...rm } = readiness(t);
+    expect(canon(analyzeTrip(t, { legacyOnly: true }))).toEqual(canon(R.analyzeTrip(structuredClone(t))));
+    const { A: _a, ...rm } = readiness(t, analyzeTrip(t, { legacyOnly: true }));
     const { A: _b, ...rr } = R.readiness(structuredClone(t));
     expect(rm).toEqual(rr);
 

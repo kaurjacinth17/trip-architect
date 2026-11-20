@@ -102,3 +102,23 @@ Judgement calls made while implementing the upgrade, so they can be reviewed:
   live room prices.
 - **Badges:** "Editor's pick" and curated "Must-see" need `scripts/link-curated.ts` to have been run; until then only
   the top-10 Famous and Hidden-gem badges appear.
+
+### Phase 4 notes
+
+- **Locks** are honoured by cascade, Tidy, Optimise route (which reorders only the blocks between locks), every
+  one-click fix (fixes aren't offered for locked blocks) and shifts. Conflicts with a locked block are alerts with a
+  "Move X after it" fix.
+- **"Insert after block X"** places the new block directly after X (plus travel time), pushing later blocks back,
+  even if the next block would have started sooner. Exact-time inserts hold their time. Locked blocks never move.
+- **Opening hours** are Place Details Enterprise data (220/day free), so they're fetched only for the open day's
+  Google places on the Itinerary tab and held in memory for 30 minutes. Closures (temporarily/permanently closed)
+  come free with the name lookups. Optimise route prefers places that are open on arrival when hours are known.
+- **New checks** (thresholds on the About page): opening hours, closures, meals at a closed place, locked-block
+  conflicts, first stop / day end 40+ minutes from the night's stay, busy mornings on check-in (>2 h before noon) and
+  check-out (>2.5 h) days, blocks outside a day's start/end time, per-day pace. They run in addition to the reference
+  rules; the parity suite runs the reference rules alone (`legacyOnly`) and still matches exactly.
+- **Live travel times** (optional, off by default, session only): Routes API Essentials (no traffic), one call per
+  leg of the open day, used in the gap connectors and the transfer checks; not stored.
+- **Travel legs** in the Add bar are simple travel blocks for now; tickets, times and helpers come with Phase 10.
+- **Day start/end points** can be the night's stay (default), nowhere, or a dropped pin. Pins are user data. A
+  Google hotel's coordinates are never copied into a day's start point (they'd escape the 30-day refresh).

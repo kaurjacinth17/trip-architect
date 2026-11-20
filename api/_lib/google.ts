@@ -6,7 +6,11 @@ import { ApiError } from './http';
 
 export const PLACES_BASE = 'https://places.googleapis.com/v1/';
 
+export const ROUTES_BASE = 'https://routes.googleapis.com/';
+
 export interface GoogleCall {
+  /** Defaults to Places API (New) */
+  base?: string;
   /** e.g. 'places:searchText' or 'places/ChIJ…' */
   path: string;
   method?: 'GET' | 'POST';
@@ -23,7 +27,7 @@ export async function googlePlaces<T>(c: GoogleCall): Promise<T> {
   if (c.fieldMask === null ? !c.path.endsWith('/media') : !c.fieldMask || c.fieldMask.includes('*')) throw new ApiError(500, 'internal', 'Field mask required');
   await spend(c.sku);
   // Not new URL(path, base): 'places:searchText' would parse as a URL scheme.
-  const url = new URL(PLACES_BASE + c.path.replace(/^\//, ''));
+  const url = new URL((c.base || PLACES_BASE) + c.path.replace(/^\//, ''));
   for (const [k, v] of Object.entries(c.query || {})) url.searchParams.set(k, v);
   let res: Response;
   try {

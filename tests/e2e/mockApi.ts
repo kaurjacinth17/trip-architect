@@ -25,13 +25,28 @@ export async function mockApi(page: Page, opts: MockOptions = {}) {
       return d ? json(route, mapDestination(d as GPlace)) : json(route, { error: { code: 'not_found', message: 'Not found' } }, 404);
     }
     if (p === '/api/places/search') {
-      const b = route.request().postDataJSON() as { tab: string; area?: string };
+      const b = route.request().postDataJSON() as { tab: string; area?: string; text?: string; center: { lat: number; lng: number } };
       let list = (googleSearch[b.tab] || { places: [] }).places as GPlace[];
+      if (b.text) {
+        // free-text search: matching fixtures, placed a few hundred metres from the searched destination
+        list = (Object.values(googleSearch).flatMap((x) => x.places) as GPlace[])
+          .filter((x) => (x.displayName?.text || '').toLowerCase().includes(b.text!.toLowerCase()))
+          .map((x, i) => ({ ...x, location: { latitude: b.center.lat + 0.003 * (i + 1), longitude: b.center.lng + 0.002 } }));
+      }
       // Area queries return the places Google lists in that neighbourhood
       if (b.area) list = list.filter((x) => x.addressComponents?.some((c) => c.longText === b.area));
       return json(route, { places: list.map(mapPlace) });
     }
     if (p === '/api/places/photo') return json(route, { uri: null });
+    if (p === '/api/places/hours') {
+      // Every fixture place opens 10:00–17:00 daily, except it's closed on Mondays
+      const periods = [0, 2, 3, 4, 5, 6].map((d) => ({ open: d * 1440 + 600, close: d * 1440 + 1020 }));
+      return json(route, { id: url.searchParams.get('id'), hours: periods, closed: null });
+    }
+    if (p === '/api/routes/legs') {
+      const b = route.request().postDataJSON() as { legs: { key: string }[] };
+      return json(route, { legs: Object.fromEntries(b.legs.map((l) => [l.key, { minutes: 17, meters: 4000 }])) });
+    }
     if (/^\/api\/places\/ChIJ/.test(p)) {
       const id = decodeURIComponent(p.split('/').pop()!);
       const all = Object.values(googleSearch).flatMap((x) => x.places) as GPlace[];

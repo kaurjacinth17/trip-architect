@@ -6,6 +6,7 @@ import {
 } from './schedule';
 import type { Trip, TripFix } from './types';
 import { clone, up5 } from './util';
+import { trm } from './geo';
 
 export interface FixResult { trip: Trip; message: string | null }
 
@@ -15,7 +16,7 @@ const impl: { [A in TripFix['a']]: Impl<A> } = {
   moveOut(t, f) {
     const day = t.plan[f.di];
     const cand = dayStats(day).acts
-      .filter((x) => !x.done)
+      .filter((x) => !x.done && !x.locked)
       .sort((a, b) => Number(a.pri === 'must') - Number(b.pri === 'must') || b.s - a.s)
       .slice(0, f.v);
     const moved: string[] = [];
@@ -74,12 +75,13 @@ const impl: { [A in TripFix['a']]: Impl<A> } = {
   },
   toEvening(t, f) {
     const g = findItem(t, f.id);
-    if (!g) return null;
+    if (!g || g.x.locked) return null;
     g.x.s = Math.max(1005, g.x.s);
     cascade(g.day);
     return `${g.x.t} moved to the evening`;
   },
   moveTo(t, f) {
+    if (findItem(t, f.id)?.x.locked) return null;
     const g = pullItem(t, f.id);
     if (!g) return null;
     placeOnDay(t, f.v, g.x);
@@ -88,6 +90,16 @@ const impl: { [A in TripFix['a']]: Impl<A> } = {
   setAct(t, f) {
     t.budget.act = f.v;
     return 'Activities budget updated';
+  },
+  afterLock(t, f) {
+    const day = t.plan[f.di];
+    const x = day.items.find((y) => y.id === f.id);
+    const lock = day.items.find((y) => y.id === f.lockId);
+    if (!x || !lock || x.locked) return null;
+    x.s = up5(lock.s + lock.d + trm(lock, x));
+    sortDay(day);
+    cascadeOrdered(day);
+    return `${x.t || 'Item'} moved after ${lock.t || 'the locked block'}`;
   },
 };
 

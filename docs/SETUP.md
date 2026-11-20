@@ -25,6 +25,8 @@ Numbers below were checked on **20 November 2026** against Google's *core servic
 
 - **Places API (New)** (not the legacy "Places API")
 - **Maps JavaScript API** (City Guide map from Phase 3; all maps from Phase 5)
+- **Routes API** (optional: only for the "Live travel times" switch in the Itinerary; off by default). If you enable
+  it, also add **Routes API** to the server key's API restrictions below.
 
 ### 1.3 Create and restrict the two keys
 
@@ -32,7 +34,7 @@ Numbers below were checked on **20 November 2026** against Google's *core servic
 
 | Key | Application restriction | API restriction | Goes in |
 | --- | --- | --- | --- |
-| Server key | **None** (Vercel functions don't have fixed IPs) | **Places API (New)** only | `GOOGLE_PLACES_SERVER_KEY` |
+| Server key | **None** (Vercel functions don't have fixed IPs) | **Places API (New)** (+ **Routes API** if enabled) | `GOOGLE_PLACES_SERVER_KEY` |
 | Browser key | **Websites**: `https://trip-architect-pi.vercel.app/*`, your preview domain with a wildcard, copied from any preview URL (for example `https://trip-architect-*-<your-team>.vercel.app/*`), `http://localhost:5173/*` | **Maps JavaScript API** only | `VITE_GOOGLE_MAPS_BROWSER_KEY` |
 
 The server key is only ever used inside `/api` functions and never reaches the browser. The browser key is public by
@@ -57,6 +59,7 @@ billed at the **Enterprise** SKU.
 | **Place Details Enterprise** | **7,000** | **220** | detail drawer (weekday hours, website, phone) |
 | **Place Details Enterprise + Atmosphere** | **7,000** | **220** | veg-friendly, editorial summary |
 | **Place Details Photos** | **7,000** | **220** | each Google photo shown |
+| Routes: Compute Routes Essentials | 70,000 | 2,201 | "Live travel times" (one call per leg of the open day) |
 | Dynamic Maps | 70,000 | (counted by Google) | each Google Map load |
 
 **How the cap works.** In Google's console, Places API (New) quotas are **per minute, per method**; there is no
@@ -69,7 +72,7 @@ function instance counts separately and the cap isn't reliable.
 In the console, add these safety nets as well:
 
 1. **Per-minute caps.** Google Maps Platform → **Quotas** → choose **Places API (New)** → for each method
-   (`SearchText`, `SearchNearby`, `GetPlace`, `AutocompletePlaces`, `GetPhotoMedia`) select the
+   (`SearchText`, `SearchNearby`, `GetPlace`, `AutocompletePlaces`, `GetPhotoMedia`; and Routes API `ComputeRoutes` if enabled) select the
    "requests per minute" row → **Edit** → set **60**. Maps JavaScript API → map loads per minute → **100**.
    (These limit bursts; they don't limit the day.)
 2. **Budget alert.** **Billing → Budgets & alerts → Create budget** → scope: this project → amount: **₹100** →

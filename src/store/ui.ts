@@ -39,6 +39,11 @@ interface UIState {
   len: 'any' | 'short' | 'mid' | 'long';
   cmpMonth: number;
   wz: Wizard | null;
+  /** Selected blocks for bulk actions */
+  selected: string[];
+  selectMode: boolean;
+  /** Optional: live travel times from Google Routes for the open day (session only, off by default) */
+  liveTravel: boolean;
   set: (p: Partial<UIState>) => void;
   /** Reset per-trip selection when switching trips (reference: `if(S.cur!==t.id){S.sel={day:0};S.ui.mapDay='all'}`). */
   enterTrip: (id: string) => void;
@@ -59,8 +64,11 @@ export const useUI = create<UIState>()((set, get) => ({
   len: 'any',
   cmpMonth: 0,
   wz: null,
+  selected: [],
+  selectMode: false,
+  liveTravel: false,
   set: (p) => set(p),
   enterTrip: (id) => {
-    if (get().cur !== id) set({ cur: id, day: 0, slot: null, pin: null, mapDay: 'all' });
+    if (get().cur !== id) set({ cur: id, day: 0, slot: null, pin: null, mapDay: 'all', selected: [], selectMode: false });
   },
 }));

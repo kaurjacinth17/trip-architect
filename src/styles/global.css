@@ -286,3 +286,17 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .gphoto figcaption a{color:#fff}
 .gmap{min-height:380px}
 .fdetails>summary{cursor:pointer;min-height:32px;list-style-position:inside}
+/* Phase 4: add bar, day tools, selection */
+.addbar{padding:12px;margin:0 0 14px}
+.addbar .chip{min-height:34px;padding:4px 10px;font-size:13px}
+.dayopts>summary{list-style:none;display:inline-flex;cursor:pointer}
+.dayopts>summary::-webkit-details-marker{display:none}
+.dayw{position:relative;display:grid}
+.dayw>.dayb{width:100%}
+.dayw.dragging{opacity:.4}
+.dgrip{position:absolute;right:6px;bottom:6px;z-index:2;cursor:grab;color:var(--mute);font-weight:800;font-size:14px;line-height:1;padding:6px 4px;border-radius:6px;touch-action:none;user-select:none}
+.dgrip:hover{background:var(--sand);color:var(--ink)}
+.blk.sel{outline:3px solid var(--terra);outline-offset:2px}
+.bctl button:disabled{opacity:.35;cursor:not-allowed}
+.bulkbar{position:sticky;bottom:12px;z-index:30;margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--paper);border:1px solid var(--forest);border-radius:12px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+@media(max-width:700px){.dgrip{right:4px;bottom:4px}}

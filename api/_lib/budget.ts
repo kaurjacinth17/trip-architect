@@ -17,7 +17,8 @@ export type Sku =
   | 'textSearchPro'                // Text Search Pro (India): 35,000
   | 'textSearchEnterprise'         // Text Search Enterprise (India): 7,000
   | 'nearbySearchEnterprise'       // Nearby Search Enterprise (India): 7,000
-  | 'placePhotos';                 // Place Details Photos (India): 7,000
+  | 'placePhotos'                  // Place Details Photos (India): 7,000
+  | 'routesEssentials';            // Routes: Compute Routes Essentials (India): 70,000
 
 export const MONTHLY_FREE: Record<Sku, number> = {
   autocomplete: 70_000,
@@ -29,6 +30,7 @@ export const MONTHLY_FREE: Record<Sku, number> = {
   textSearchEnterprise: 7_000,
   nearbySearchEnterprise: 7_000,
   placePhotos: 7_000,
+  routesEssentials: 70_000,
 };
 
 /** 31 days at the default never exceeds the monthly free usage (e.g. 7,000 → 220/day → 6,820 in a 31-day month). */

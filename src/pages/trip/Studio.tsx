@@ -9,7 +9,7 @@ import {
   DndContext, DragOverlay, MeasuringStrategy, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors,
   type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
 } from '@dnd-kit/core';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { WarningCard } from '../../components/Cards';
 import { BEST, CATS, LIB_CATS, paceOf } from '../../data/constants';
@@ -26,10 +26,16 @@ import { mut } from '../../lib/actions';
 import { toast } from '../../store/toast';
 import { useUI, type PanelTab } from '../../store/ui';
 import { ItemDialog } from './ItemDialog';
+import { AddBar } from './AddBar';
+import { BulkBar, DayOptions } from './DayTools';
+import { moveDay } from '../../engine/days';
+import { isOpenAt } from '../../engine/hours';
+import type { CheckCtx } from '../../engine/checks';
+import type { OpenTest } from '../../engine/schedule';
 import { changeDays } from './Overview';
 import type { TabProps } from './TripPage';
 
-type DragKind = 'item' | 'lib' | 'wish';
+type DragKind = 'item' | 'lib' | 'wish' | 'day';
 interface DragData { k: DragKind; id: string; title: string; col: string }
 type DropData = { kind: 'blk'; id: string } | { kind: 'day'; di: number } | { kind: 'list' } | { kind: 'wish' };
 interface Indicator { over: string | null; before: boolean }
@@ -61,7 +67,7 @@ function pointerY(e: DragMoveEvent | DragEndEvent): number {
   return y + e.delta.y;
 }
 
-export default function Studio({ t, A, fix, goDay: _goDay }: TabProps) {
+export default function Studio({ t, A, fix, goDay: _goDay, ctx = {} }: TabProps) {
   const ui = useUI();
   const di = Math.min(ui.day, t.plan.length - 1);
   const [dialog, setDialog] = useState<{ x: Item; di: number; isNew: boolean } | null>(null);
@@ -88,6 +94,14 @@ export default function Studio({ t, A, fix, goDay: _goDay }: TabProps) {
     const before = e.over ? pointerY(e) < e.over.rect.top + e.over.rect.height / 2 : false;
     reset();
     if (!d || !tgt) return;
+    if (d.k === 'day') {
+      const from = +d.id;
+      if (tgt.kind === 'day' && tgt.di !== from) {
+        mut(t.id, (tt) => { Object.assign(tt, moveDay(tt, from, tgt.di)); }, `Day ${from + 1} moved to position ${tgt.di + 1}`, true);
+        useUI.getState().set({ day: tgt.di });
+      }
+      return;
+    }
     if (tgt.kind === 'wish') {
       if (d.k === 'item') mut(t.id, (tt) => { const f = pullItem(tt, d.id); if (!f) return false; tt.wish.push(f.x); }, 'Moved to wishlist', true);
       else if (d.k === 'lib') mut(t.id, (tt) => { if (tt.wish.some((w) => w.pid === d.id)) return false; tt.wish.push(itemFromPlace(PL[d.id])); }, 'Saved to wishlist');
@@ -147,7 +161,7 @@ export default function Studio({ t, A, fix, goDay: _goDay }: TabProps) {
       }}>
       <div className="studio">
         <DayRail t={t} A={A} di={di} ind={ind} />
-        <DayMain t={t} A={A} di={di} ind={ind} drag={drag} onEdit={(x) => setDialog({ x, di, isNew: false })} onAddCustom={addCustom} />
+        <DayMain t={t} A={A} di={di} ind={ind} drag={drag} ctx={ctx} onEdit={(x) => setDialog({ x, di, isNew: false })} onAddCustom={addCustom} />
         <aside className="panel" aria-label="Checks, places and wishlist">
           <Panel t={t} A={A} di={di} ind={ind} fix={fix} />
         </aside>
@@ -164,12 +178,15 @@ export default function Studio({ t, A, fix, goDay: _goDay }: TabProps) {
 
 function DayButton({ t, A, i, on, over }: { t: Trip; A: TripAnalysis; i: number; on: boolean; over: boolean }) {
   const { setNodeRef } = useDroppable({ id: 'day:' + i, data: { kind: 'day', di: i } satisfies DropData });
+  const grip = useDraggable({ id: 'dayd:' + i, data: { k: 'day', id: String(i), title: `Day ${i + 1}`, col: 'var(--forest)' } satisfies DragData });
   const d = t.plan[i];
   const s = dayStats(d);
   const a = A.days[i].filter((w) => w.lvl === 'alert').length, c = A.days[i].filter((w) => w.lvl === 'caution').length;
-  const ratio = s.actMin / paceOf(t.pace).cap;
+  const ratio = s.actMin / paceOf(d.pace || t.pace).cap;
   const date = dayDate(t, i);
   return (
+    <div className={'dayw' + (grip.isDragging ? ' dragging' : '')} ref={grip.setNodeRef}>
+    <span className="dgrip" {...grip.listeners} title="Drag to reorder days (keyboard: Day options → Move day)" aria-hidden="true">⋮⋮</span>
     <button ref={setNodeRef} type="button" className={'dayb' + (on ? ' on' : '') + (over ? ' drop' : '')} aria-current={on ? 'true' : undefined}
       data-dropday={i} onClick={() => useUI.getState().set({ day: i, slot: null })}>
       <span className="row between" style={{ flexWrap: 'nowrap' }}>
@@ -183,6 +200,7 @@ function DayButton({ t, A, i, on, over }: { t: Trip; A: TripAnalysis; i: number;
       <div className={'meter' + (ratio > 1.1 ? ' bad' : ratio > 1 ? ' warn' : '')}><i style={{ width: Math.min(100, ratio * 100) + '%' }} /></div>
       <span className="tiny muted">{hm(s.actMin)} planned</span>
     </button>
+    </div>
   );
 }
 
@@ -197,7 +215,7 @@ function DayRail({ t, A, di, ind }: { t: Trip; A: TripAnalysis; di: number; ind:
 
 /* ------------------------------------------------------------------------------------------- timeline */
 
-function Block({ t, x, flagged, ind, onEdit }: { t: Trip; x: Item; flagged: boolean; ind: Indicator; onEdit: () => void }) {
+function Block({ t, x, flagged, ind, onEdit, selected, selectMode, onSelect }: { t: Trip; x: Item; flagged: boolean; ind: Indicator; onEdit: () => void; selected: boolean; selectMode: boolean; onSelect: (e: { shiftKey: boolean }) => void }) {
   const cat = CATS[x.cat] || CATS.custom;
   const p = x.pid ? PL[x.pid] : undefined;
   const drag = useDraggable({ id: 'item:' + x.id, data: { k: 'item', id: x.id, title: x.t, col: cat[1] } satisfies DragData });
@@ -221,13 +239,24 @@ function Block({ t, x, flagged, ind, onEdit }: { t: Trip; x: Item; flagged: bool
     <div
       ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el); }}
       {...drag.listeners}
-      className={['blk', x.done && 'done', flagged && 'flag-a', drag.isDragging && 'dragging', over && (ind.before ? 'over-top' : 'over-bot')].filter(Boolean).join(' ')}
+      className={['blk', x.done && 'done', flagged && 'flag-a', drag.isDragging && 'dragging', over && (ind.before ? 'over-top' : 'over-bot'), selected && 'sel'].filter(Boolean).join(' ')}
       style={{ '--c': cat[1] } as React.CSSProperties}
       data-id={x.id}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('button,a,input,select,textarea')) return;
+        if (selectMode || e.ctrlKey || e.metaKey || e.shiftKey) { e.preventDefault(); onSelect(e); }
+      }}
     >
       <div className="row between" style={{ flexWrap: 'nowrap', alignItems: 'start' }}>
-        <span className="bt">{x.t}</span>
-        {x.pri === 'must' && <span className="tag t">Must-do</span>}
+        <span className="row" style={{ gap: 8, flexWrap: 'nowrap', alignItems: 'start' }}>
+          {selectMode && <input type="checkbox" checked={selected} onChange={() => onSelect({ shiftKey: false })} aria-label={`Select ${x.t}`} />}
+          <span className="bt">{x.locked && <span className="lockic" role="img" aria-label="Time locked" title="Time locked: never moved automatically">🔒 </span>}{x.t}</span>
+        </span>
+        <span className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
+          {x.booking?.status === 'booked' && <span className="tag f">Booked{x.booking.ref ? ` · ${x.booking.ref}` : ''}</span>}
+          {x.booking?.status === 'needed' && <span className="tag t">Book</span>}
+          {x.pri === 'must' && <span className="tag t">Must-do</span>}
+        </span>
       </div>
       <div className="bm">
         <span className="tag" style={{ color: cat[1] }}>{cat[0]}</span>
@@ -236,13 +265,15 @@ function Block({ t, x, flagged, ind, onEdit }: { t: Trip; x: Item; flagged: bool
         {x.c > 0 && <span>{inr(x.c)} pp</span>}
         {p && p.best !== 'any' && <span>{BEST[p.best]}</span>}
       </div>
+      {(x.tags?.length || x.link) && <div className="bm">{x.tags?.map((g) => <span key={g} className="tag">#{g}</span>)}{x.link && <a href={x.link} target="_blank" rel="noopener noreferrer">Link</a>}</div>}
       {x.n && <div className="bnote">{x.n}</div>}
       <div className="bctl noprint">
         <button type="button" aria-pressed={x.done} aria-label={`Mark ${x.t} done`} onClick={() => act((tt) => { const f = findItem(tt, x.id); if (!f) return false; f.x.done = !f.x.done; })}>{x.done ? 'Undo done' : 'Done'}</button>
         <button type="button" aria-label={`Shorten ${x.t} by 15 minutes`} onClick={() => act((tt) => { const f = findItem(tt, x.id); if (!f) return false; f.x.d = Math.max(15, f.x.d - 15); cascade(f.day); })}>−15m</button>
         <button type="button" aria-label={`Lengthen ${x.t} by 15 minutes`} onClick={() => act((tt) => { const f = findItem(tt, x.id); if (!f) return false; f.x.d = Math.max(15, f.x.d + 15); cascade(f.day); })}>+15m</button>
-        <button type="button" aria-label={`Move ${x.t} up`} onClick={() => nudge(-1)}>↑</button>
-        <button type="button" aria-label={`Move ${x.t} down`} onClick={() => nudge(1)}>↓</button>
+        <button type="button" aria-label={`Move ${x.t} up`} disabled={!!x.locked} onClick={() => nudge(-1)}>↑</button>
+        <button type="button" aria-label={`Move ${x.t} down`} disabled={!!x.locked} onClick={() => nudge(1)}>↓</button>
+        <button type="button" aria-pressed={!!x.locked} aria-label={x.locked ? `Unlock ${x.t}` : `Lock ${x.t}'s time`} onClick={() => act((tt) => { const f = findItem(tt, x.id); if (!f) return false; f.x.locked = !f.x.locked || undefined; }, x.locked ? 'Unlocked' : 'Time locked')}>{x.locked ? 'Unlock' : 'Lock'}</button>
         <button type="button" aria-label={`Edit ${x.t}`} onClick={onEdit}>Edit</button>
         <button type="button" aria-label={`Delete ${x.t}`} style={{ color: 'var(--alert)' }} onClick={() => act((tt) => { if (!pullItem(tt, x.id)) return false; }, 'Activity deleted', true)}>Delete</button>
       </div>
@@ -250,14 +281,14 @@ function Block({ t, x, flagged, ind, onEdit }: { t: Trip; x: Item; flagged: bool
   );
 }
 
-function Gap({ p, x }: { p: Item; x: Item }) {
+function Gap({ p, x, live }: { p: Item; x: Item; live?: number }) {
   const end = p.s + p.d, gap = x.s - end;
   const d = geo(p) && geo(x) ? km(p, x) : null;
-  const tr = travelMin(d);
+  const tr = live ?? travelMin(d);
   const bad = (d != null && gap < tr) || gap < 0;
   return (
     <div className={'gap' + (bad ? ' bad' : '')}>
-      {d != null && <span>{d < 1.5 ? Math.round(d * 1000) + ' m walk' : d.toFixed(1) + ' km ride'} · ~{tr} min</span>}
+      {d != null && <span>{d < 1.5 ? Math.round(d * 1000) + ' m walk' : d.toFixed(1) + ' km ride'} · ~{tr} min{live != null ? ' by road (Google Maps)' : ''}</span>}
       {gap < 0 ? <span>Overlaps by {hm(-gap)}</span> : bad ? <span>only {gap} min left</span> : null}
       {gap - tr >= 60 && (
         <button type="button" className="free" onClick={() => useUI.getState().set({ slot: up15(end + tr), ptab: 'lib' })}>Free {hm(gap - tr)} · add something</button>
@@ -271,8 +302,8 @@ function TimelineDrop({ children, di, active }: { children: ReactNode; di: numbe
   return <div ref={setNodeRef} className={'tl' + (isOver && active ? ' drop-list' : '')} data-droplist={di}>{children}</div>;
 }
 
-function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
-  t: Trip; A: TripAnalysis; di: number; ind: Indicator; drag: DragData | null; onEdit: (x: Item) => void; onAddCustom: () => void;
+function DayMain({ t, A, di, ind, drag, ctx, onEdit, onAddCustom }: {
+  t: Trip; A: TripAnalysis; di: number; ind: Indicator; drag: DragData | null; ctx: CheckCtx; onEdit: (x: Item) => void; onAddCustom: () => void;
 }) {
   const day = t.plan[di];
   const st = dayStats(day);
@@ -280,7 +311,24 @@ function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
   const flagged = new Set(W.filter((w) => w.lvl === 'alert' && w.id).map((w) => w.id));
   const date = dayDate(t, di);
   const set = useUI((s) => s.set);
+  const selected = useUI((s) => s.selected);
+  const selectMode = useUI((s) => s.selectMode);
+  const liveTravel = useUI((s) => s.liveTravel);
+  const lastSel = useRef<string | null>(null);
   const [pickDest, setPickDest] = useState(false);
+  const toggleSel = (id: string, shift: boolean) => {
+    const ids = st.it.map((x) => x.id);
+    let next = selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id];
+    if (shift && lastSel.current && ids.includes(lastSel.current)) {
+      const [a, b] = [ids.indexOf(lastSel.current), ids.indexOf(id)].sort((x, y) => x - y);
+      next = [...new Set([...selected, ...ids.slice(a, b + 1)])];
+    }
+    lastSel.current = id;
+    set({ selected: next });
+  };
+  const openTest: OpenTest | undefined = ctx.hours && Object.keys(ctx.hours).length && date
+    ? (x, minute) => { const ph = x.gid ? ctx.hours![x.gid] : undefined; return ph ? isOpenAt(ph, date.getDay(), minute) : null; }
+    : undefined;
   const action = (fn: (tt: Trip) => false | void, msg: string) => mut(t.id, fn, msg, true);
 
   return (
@@ -301,13 +349,13 @@ function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
             {t.dests.map((id) => <option key={id} value={id}>{destName(t, id)}</option>)}
             <option value="__new">Another destination…</option>
           </select>
-          <button type="button" className="btn sm" onClick={onAddCustom}>Add custom activity</button>
-          <button type="button" className="btn sm" onClick={() => set({ ptab: 'lib' })}>Add from library</button>
-          <button type="button" className="btn sm" title="Remove gaps and add travel buffers" onClick={() => action((tt) => { const d = tt.plan[di]; if (!d.items.length) return false; tidy(d); }, 'Times tidied')}>Tidy times</button>
+          <button type="button" className="btn sm" title="Remove gaps and add travel buffers" onClick={() => action((tt) => { const d = tt.plan[di]; if (!d.items.length) return false; tidy(d, d.start); }, 'Times tidied')}>Tidy times</button>
           <button type="button" className="btn sm" title="Reorder by distance" onClick={() => {
             if (dayStats(day).it.filter(geo).length < 3) { toast('Needs at least three mapped places'); return; }
-            action((tt) => { if (!routeOrder(tt.plan[di])) return false; }, 'Reordered by distance');
+            action((tt) => { if (!routeOrder(tt.plan[di], openTest)) return false; }, openTest ? 'Reordered by distance and opening hours' : 'Reordered by distance');
           }}>Optimise route</button>
+          <button type="button" className={'btn sm' + (selectMode ? ' pri' : '')} aria-pressed={selectMode} onClick={() => set({ selectMode: !selectMode, selected: [] })}>{selectMode ? 'Done selecting' : 'Select'}</button>
+          <label className="row small" style={{ gap: 6, fontWeight: 600 }} title="Uses Google Routes for this day’s legs (not stored)"><input type="checkbox" checked={liveTravel} onChange={(e) => set({ liveTravel: e.target.checked })} />Live travel times</label>
           <button type="button" className="btn sm ghost" onClick={() => action((tt) => {
             const d = tt.plan[di];
             if (!d.items.length) return false;
@@ -315,14 +363,16 @@ function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
             d.items = [];
           }, 'Day cleared; activities moved to wishlist')}>Clear day</button>
         </div>
+        <DayOptions t={t} di={di} />
       </div>
+      <AddBar t={t} di={di} />
       <TimelineDrop di={di} active={!!drag}>
         {st.it.length ? st.it.map((x, i) => (
           <div key={x.id}>
-            {i > 0 && <Gap p={st.it[i - 1]} x={x} />}
+            {i > 0 && <Gap p={st.it[i - 1]} x={x} live={ctx.travel?.[`${st.it[i - 1].id}>${x.id}`]} />}
             <div className="slot">
               <div className="time">{fmtT(x.s).replace(' ', ' ')}<small>{hm(x.d)}</small></div>
-              <Block t={t} x={x} flagged={flagged.has(x.id)} ind={ind} onEdit={() => onEdit(x)} />
+              <Block t={t} x={x} flagged={flagged.has(x.id)} ind={ind} onEdit={() => onEdit(x)} selected={selected.includes(x.id)} selectMode={selectMode} onSelect={(e) => toggleSel(x.id, e.shiftKey)} />
             </div>
           </div>
         )) : (
@@ -336,6 +386,7 @@ function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
           </div>
         )}
       </TimelineDrop>
+      {selected.length > 0 && <BulkBar t={t} di={di} ids={selected} />}
       {pickDest && (
         <Modal title={`Destination for Day ${di + 1}`} onClose={() => setPickDest(false)}>
           <h2>Destination for Day {di + 1}</h2>
@@ -350,7 +401,7 @@ function DayMain({ t, A, di, ind, drag, onEdit, onAddCustom }: {
           }} />
         </Modal>
       )}
-      <p className="tiny muted" style={{ marginTop: 14 }}>Drag blocks to reorder or drop them on another day (press and hold on touch screens); ↑ and ↓ reorder from the keyboard. Edit has duplicate and move to wishlist. Times only ever move later on their own; use Tidy times to close gaps.</p>
+      <p className="tiny muted" style={{ marginTop: 14 }}>Drag blocks to reorder or drop them on another day (press and hold on touch screens); ↑ and ↓ reorder from the keyboard. Ctrl/⌘-click or shift-click blocks (or use Select) for bulk actions. Locked blocks never move on their own; other times only ever move later on their own. Use Tidy times to close gaps.</p>
     </div>
   );
 }
