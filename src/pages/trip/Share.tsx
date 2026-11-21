@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { exportJSON, printDocument, SHARE_WARN_LENGTH, shareText, shareURL, summaryText } from '../../engine/share';
+import { exportJSON, printDocument, SHARE_WARN_LENGTH, shareText, shareURL, spendText, summaryText } from '../../engine/share';
 import { slug } from '../../engine/util';
 import { copyText, downloadFile } from '../../lib/browser';
 import type { TabProps } from './TripPage';
@@ -17,6 +17,7 @@ export function Share({ t }: TabProps) {
           <div className="row">
             <button type="button" className="btn pri" onClick={() => copyText(shareText(t))}>Copy itinerary</button>
             <button type="button" className="btn" onClick={() => copyText(summaryText(t))}>Copy short summary</button>
+            {spendText(t) && <button type="button" className="btn" onClick={() => copyText(spendText(t), 'Spend summary copied')}>Copy spend summary</button>}
           </div>
         </div>
         <div className="card grid" style={{ gap: 10 }}>

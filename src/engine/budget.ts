@@ -92,7 +92,8 @@ export function effectiveBudget(t: Trip): Budget {
 }
 
 export const plannedTotal = (t: Trip) => sum(BCATS, ([k]) => effectiveBudget(t)[k]);
-export const spentBy = (t: Pick<Trip, 'expenses'>, k: BudgetKey) => sum(t.expenses.filter((e) => e.cat === k), inrOf);
+export const spentBy = (t: Pick<Trip, 'expenses'>, k: BudgetKey) => sum(t.expenses.filter((e) => e.cat === k && !e.deleted), inrOf);
+export const totalSpent = (t: Pick<Trip, 'expenses'>) => sum(t.expenses.filter((e) => !e.deleted), inrOf);
 
 /** Net balance per traveller: positive means they are owed money. */
 export function balances(travelers: string[], expenses: Expense[]): number[] {

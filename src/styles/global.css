@@ -307,3 +307,15 @@ details.bdown{margin-top:4px}
 details.bdown summary{cursor:pointer;color:var(--forest);font-weight:600}
 ul.plinks{margin:4px 0 0;padding:0;list-style:none;text-align:right}
 ul.plinks li{margin:2px 0}
+
+/* Phase 7: expenses */
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 13px/1.2 var(--sans);cursor:pointer;min-height:36px}
+.seg button.on{background:var(--forest);border-color:var(--forest);color:#fff}
+ul.xlist{list-style:none;margin:0;padding:0}
+.xrow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.xrow>div:first-child{flex:1 1 260px}
+.splitrow{gap:8px;flex-wrap:wrap;align-items:center}
+details.bal summary{cursor:pointer;list-style:none}
+details.bal summary::-webkit-details-marker{display:none}
+button.tag.linkish{border:0;cursor:pointer}

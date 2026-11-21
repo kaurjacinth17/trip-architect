@@ -5,6 +5,7 @@ import { D } from '../data/destinations';
 import { stripGoogleCoords } from './coords';
 import { routeName } from './dest';
 import { effectiveBudget, plannedTotal } from './budget';
+import { rupees, spendSummary } from './expenses';
 import { travellers } from './schedule';
 import { dayDate, fmtD, fmtT, hm } from './time';
 import type { Trip } from './types';
@@ -48,8 +49,30 @@ export function printHTML(t: Trip): string {
  ${t.plan.map((d, i) => `<h2 style="margin-top:22px;font-size:20px">Day ${i + 1}${dayDate(t, i) ? ' · ' + fmtD(dayDate(t, i)) : ''}${d.label ? ' — ' + esc(d.label) : ''}</h2><table><tbody>${[...d.items].sort((a, b) => a.s - b.s).map((x) => `<tr><td style="width:120px;white-space:nowrap"><b>${fmtT(x.s)}</b><br><span style="font-size:12px;color:#666">${hm(x.d)}</span></td><td><b>${esc(x.t)}</b>${x.area ? ` · ${esc(x.area)}` : ''}${x.c ? ` · ${inr(x.c)} pp` : ''}${x.n ? `<br><span style="font-size:13px">${esc(x.n)}</span>` : ''}</td></tr>`).join('') || '<tr><td colspan="2">Free day</td></tr>'}</tbody></table>`).join('')}
  <h2 style="margin-top:26px;font-size:20px">Budget</h2><table><tbody>${BCATS.map(([k, l]) => `<tr><td>${l}</td><td class="n" style="text-align:right">${inr(effectiveBudget(t)[k])}</td></tr>`).join('')}<tr><td><b>Total planned</b></td><td style="text-align:right"><b>${inr(planned)}</b> (${inr(planned / n)} pp)</td></tr></tbody></table>
  ${t.stays.length ? `<h2 style="margin-top:26px;font-size:20px">Stays</h2><table><tbody>${t.stays.map((s) => `<tr><td><b>${esc(s.name)}</b> · ${esc(s.area)}</td><td>${esc(s.status)}</td><td style="text-align:right">${inr(s.price)}/night × ${s.nights}</td></tr>`).join('')}</tbody></table>` : ''}
+ ${spendHTML(t)}
  <h2 style="margin-top:26px;font-size:20px">Packing list</h2><p style="columns:2;font-size:14px">${t.pack.map((x) => `${x.done ? '☑' : '☐'} ${esc(x.name)}${x.qty > 1 ? ' ×' + x.qty : ''}`).join('<br>')}</p>
  ${t.notes ? `<h2 style="margin-top:26px;font-size:20px">Notes</h2><p style="white-space:pre-wrap">${esc(t.notes)}</p>` : ''}<p style="margin-top:26px;font-size:12px;color:#666">Made with Trip Architect. Times, distances and costs are planning estimates.</p></div>`;
+}
+
+/** Trip spend summary: total, by category, what each person paid and their share, and how to settle up. */
+export function spendText(t: Trip): string {
+  const s = spendSummary(t);
+  if (!s.count) return '';
+  const p = (x: number) => inr(rupees(x));
+  let out = `*Spending so far: ${p(s.total)}* (${plural(s.count, 'expense')})\n`;
+  out += s.byCat.map(([l, v]) => `• ${l}: ${p(v)}`).join('\n');
+  if (t.travelers.length > 1) {
+    out += '\n\n*Who paid what*\n' + s.people.map((x) => `• ${x.name}: paid ${p(x.paid)}, share ${p(x.share)}`).join('\n');
+    out += '\n\n*To settle up*\n' + (s.settle.length ? s.settle.map(([a, b, x]) => `• ${t.travelers[a]} pays ${t.travelers[b]} ${p(x)}`).join('\n') : '• All square');
+  }
+  return out;
+}
+
+function spendHTML(t: Trip): string {
+  const s = spendSummary(t);
+  if (!s.count) return '';
+  const p = (x: number) => inr(rupees(x));
+  return `<h2 style="margin-top:26px;font-size:20px">Spending</h2><table><tbody>${s.byCat.map(([l, v]) => `<tr><td>${esc(l)}</td><td style="text-align:right">${p(v)}</td></tr>`).join('')}<tr><td><b>Total spent</b></td><td style="text-align:right"><b>${p(s.total)}</b></td></tr></tbody></table>${t.travelers.length > 1 ? `<table style="margin-top:10px"><tbody>${s.people.map((x) => `<tr><td>${esc(x.name)}</td><td>paid ${p(x.paid)}</td><td>share ${p(x.share)}</td><td style="text-align:right">${x.net === 0 ? 'settled up' : x.net > 0 ? 'gets back ' + p(x.net) : 'owes ' + p(-x.net)}</td></tr>`).join('')}</tbody></table>${s.settle.length ? `<p style="font-size:14px">To settle up: ${s.settle.map(([a, b, x]) => `${esc(t.travelers[a])} pays ${esc(t.travelers[b])} ${p(x)}`).join('; ')}.</p>` : ''}` : ''}`;
 }
 
 export function printDocument(t: Trip): string {
@@ -96,6 +119,9 @@ export function normaliseTrip(input: unknown, opts: { keepId?: boolean } = {}): 
     budget: { travel: 0, stay: 0, food: 0, local: 0, act: 0, shop: 0, misc: 0, ...(t.budget || {}) },
     ...(t.budgetMode ? { budgetMode: { ...(t.budgetMode.stay ? { stay: t.budgetMode.stay } : {}), ...(t.budgetMode.act ? { act: t.budgetMode.act } : {}) } } : {}),
     expenses: t.expenses ?? [],
+    ...(Array.isArray(t.payments) ? { payments: t.payments } : {}),
+    ...(Array.isArray(t.travelerUpi) ? { travelerUpi: t.travelerUpi } : {}),
+    ...(typeof t.me === 'number' ? { me: t.me } : {}),
     stays: t.stays ?? [],
     pack: t.pack ?? [],
     notes: t.notes ?? '',
@@ -109,7 +135,9 @@ export function normaliseTrip(input: unknown, opts: { keepId?: boolean } = {}): 
 }
 
 export function encodeShare(t: Trip): string {
-  return compressToEncodedURIComponent(JSON.stringify({ app: APP_ID, version: FILE_VERSION, trip: portable(t) }));
+  // UPI IDs are for trip members, not for everyone holding a read-only link
+  const { travelerUpi: _u, ...trip } = portable(t);
+  return compressToEncodedURIComponent(JSON.stringify({ app: APP_ID, version: FILE_VERSION, trip }));
 }
 
 export function decodeShare(data: string): Trip {

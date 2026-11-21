@@ -155,7 +155,7 @@ export function analyzeTrip(t: Trip, ctx: CheckCtx = {}): TripAnalysis {
   if (t.budgetTotal && planned > t.budgetTotal) {
     W.push({ lvl: 'alert', k: 'budget', title: 'Planned costs exceed your budget', body: `Categories add up to ${inr(planned)} against a budget of ${inr(t.budgetTotal)}: ${inr(planned - t.budgetTotal)} over.`, tab: 'budget' });
   }
-  const spent = (k: string) => sum(t.expenses.filter((e) => e.cat === k), inrOf);
+  const spent = (k: string) => sum(t.expenses.filter((e) => e.cat === k && !e.deleted), inrOf);
   for (const [k, l] of BCATS) {
     const s = spent(k);
     if (B[k] > 0 && s > B[k]) W.push({ lvl: 'caution', k: 'cat', title: `${l} is over plan`, body: `Spent ${inr(s)} of ${inr(B[k])}.`, tab: 'budget' });

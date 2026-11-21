@@ -1,43 +1,24 @@
-import { useState } from 'react';
 import { CommitInput } from '../../components/Inputs';
 import { BCATS } from '../../data/constants';
-import { autoAct, autoStay, balances, effectiveBudget, estBudget, isAuto, plannedTotal, settleUp, spentBy, type StayLine } from '../../engine/budget';
+import { autoAct, autoStay, effectiveBudget, estBudget, isAuto, plannedTotal, spentBy, totalSpent, type StayLine } from '../../engine/budget';
+import { liveExpenses } from '../../engine/expenses';
+import { Link } from 'react-router-dom';
 import { destName } from '../../engine/dest';
 import { isAct, travellers } from '../../engine/schedule';
 import type { AutoKey, BudgetKey, Trip } from '../../engine/types';
-import { inr, plural, sum, todayISO, uid } from '../../engine/util';
+import { inr, plural, sum } from '../../engine/util';
 import { mut } from '../../lib/actions';
-import { useRates } from '../../lib/live';
-import { inrOf, money, toINR } from '../../engine/currency';
-import { FX_SUPPORTED } from '../../data/currencies';
-import { toast } from '../../store/toast';
 import type { TabProps } from './TripPage';
 
 export function Budget({ t }: TabProps) {
   const n = travellers(t), days = t.plan.length;
   const planned = plannedTotal(t);
   const B = effectiveBudget(t);
-  const spent = sum(t.expenses, inrOf);
+  const spent = totalSpent(t);
   const total = t.budgetTotal || planned;
   const by = (k: BudgetKey) => spentBy(t, k);
   const pct = total ? Math.round((spent / total) * 100) : 0;
-  const bal = balances(t.travelers, t.expenses);
-  const settle = settleUp(bal);
   const actCost = sum(t.plan.flatMap((d) => d.items.filter(isAct)), (x) => x.c) * n;
-  const today = todayISO();
-  const [ex, setEx] = useState({ amt: '', cur: t.currency || 'INR', cat: 'travel' as BudgetKey, date: t.start && today < t.start ? t.start : today, paid: 0, among: t.travelers.map((_, i) => i), note: '' });
-  const among = ex.among.filter((i) => i < t.travelers.length);
-
-  const foreign = ex.cur !== 'INR' || t.expenses.some((e) => e.cur && e.cur !== 'INR');
-  const fx = useRates(foreign);
-  const exInr = toINR(+ex.amt || 0, ex.cur, fx.data);
-  const addExp = () => {
-    const amt = +ex.amt;
-    if (!(amt > 0)) { toast('Enter an amount'); return; }
-    if (ex.cur !== 'INR' && exInr == null) { toast('Exchange rates aren’t available right now; enter the amount in ₹'); return; }
-    mut(t.id, (tt) => { tt.expenses.push({ id: uid(), amt, cur: ex.cur, inr: exInr ?? amt, ...(ex.cur !== 'INR' && fx.data ? { fxDate: fx.data.date } : {}), cat: ex.cat, date: ex.date, paid: Math.min(ex.paid, tt.travelers.length - 1), among, note: ex.note.trim() }); }, 'Expense added', true);
-    setEx({ ...ex, amt: '', note: '' });
-  };
   const stats: [string, string, string][] = [
     ['Budget', t.budgetTotal ? inr(t.budgetTotal) : 'Not set', t.budgetTotal ? `${inr(t.budgetTotal / n)} per person` : 'Set it in Overview'],
     ['Planned', inr(planned), `${inr(planned / n)} pp · ${inr(planned / days)} a day`],
@@ -113,68 +94,13 @@ export function Budget({ t }: TabProps) {
             <p className="tiny muted">Bar: spent. Terracotta tick: planned.</p>
           </div>
         </div>
-        <form className="card grid" style={{ gap: 10 }} onSubmit={(e) => { e.preventDefault(); addExp(); }}>
-          <h3>Add an expense</h3>
-          <div className="grid g2">
-            <label className="f">Amount ({ex.cur})<input type="number" min={0} step={0.01} value={ex.amt} onChange={(e) => setEx({ ...ex, amt: e.target.value })} /></label>
-            <label className="f">Currency<select value={ex.cur} onChange={(e) => setEx({ ...ex, cur: e.target.value })}>{[...new Set(['INR', t.currency || 'INR', ...FX_SUPPORTED])].map((c) => <option key={c}>{c}</option>)}</select></label>
-            <label className="f">Category<select value={ex.cat} onChange={(e) => setEx({ ...ex, cat: e.target.value as BudgetKey })}>{BCATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
-            <label className="f">Date<input type="date" value={ex.date} onChange={(e) => setEx({ ...ex, date: e.target.value })} /></label>
-            <label className="f">Paid by<select value={ex.paid} onChange={(e) => setEx({ ...ex, paid: +e.target.value })}>{t.travelers.map((x, i) => <option key={i} value={i}>{x}</option>)}</select></label>
-          </div>
-          <fieldset className="grid" style={{ gap: 6, border: 0, padding: 0, margin: 0 }}>
-            <legend className="small" style={{ fontWeight: 700, marginBottom: 6 }}>Split equally between</legend>
-            <div className="row">
-              {t.travelers.map((x, i) => (
-                <label className="row small" style={{ gap: 6, fontWeight: 600 }} key={i}>
-                  <input type="checkbox" checked={among.includes(i)} onChange={(e) => setEx({ ...ex, among: e.target.checked ? [...among, i].sort() : among.filter((k) => k !== i) })} />{x}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          {ex.cur !== 'INR' && <p className="tiny muted">{exInr != null ? `≈ ${inr(exInr)} at the ${fx.data?.date} rate (European Central Bank, via Frankfurter). The ₹ value is fixed when you add it.` : fx.isLoading ? 'Loading exchange rate…' : 'Exchange rate unavailable right now.'}</p>}
-          <label className="f">Note<input type="text" placeholder="e.g. Amber Fort tickets" value={ex.note} onChange={(e) => setEx({ ...ex, note: e.target.value })} /></label>
-          <button type="submit" className="btn pri">Add expense</button>
-        </form>
+        <div className="card grid" style={{ gap: 8 }}>
+          <h3>Expenses</h3>
+          <p className="small">{inr(spent)} spent across {plural(liveExpenses(t).length, 'expense')}.{n > 1 ? ' Add, split and settle them in Expenses.' : ''}</p>
+          <div><Link className="btn pri" to={`/trips/${t.id}/expenses`}>Open Expenses</Link></div>
+        </div>
       </section>
 
-      <section className="sec">
-        <h2>Expenses</h2>
-        {t.expenses.length ? (
-          <div className="scroll" style={{ marginTop: 12 }}>
-            <table className="stack">
-              <thead><tr><th>Date</th><th>Note</th><th>Category</th><th>Paid by</th><th>Split</th><th className="n">Amount</th><th><span className="vh">Actions</span></th></tr></thead>
-              <tbody>
-                {[...t.expenses].sort((a, b) => (a.date < b.date ? 1 : -1)).map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.date}</td><td>{e.note || '—'}</td><td>{BCATS.find((b) => b[0] === e.cat)?.[1]}</td><td>{t.travelers[e.paid] || '?'}</td>
-                    <td>{(e.among?.length ? e.among : t.travelers.map((_, i) => i)).length} people</td>
-                    <td className="n"><b>{inr(inrOf(e))}</b>{e.cur && e.cur !== 'INR' && <><br /><span className="tiny muted">{money(e.amt, e.cur)}{e.fxDate ? ` · rate of ${e.fxDate}` : ''}</span></>}</td>
-                    <td><button type="button" className="btn sm ghost" aria-label={`Delete expense ${e.note || inr(e.amt)}`} onClick={() => mut(t.id, (tt) => { tt.expenses = tt.expenses.filter((x) => x.id !== e.id); }, 'Expense deleted', true)}>Delete</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : <p className="muted small" style={{ marginTop: 8 }}>No expenses yet. Add them as you go; actuals fill in automatically.</p>}
-      </section>
-
-      {n > 1 && (
-        <section className="sec">
-          <h2>Who owes whom</h2>
-          <div className="grid g2" style={{ marginTop: 12 }}>
-            <div className="card grid" style={{ gap: 6 }}>
-              {t.travelers.map((x, i) => (
-                <div className="row between small" key={i}><span>{x}</span><b style={{ color: bal[i] >= 0 ? 'var(--forest)' : 'var(--alert)' }}>{bal[i] >= 0 ? 'gets back ' + inr(bal[i]) : 'owes ' + inr(-bal[i])}</b></div>
-              ))}
-            </div>
-            <div className="card grid" style={{ gap: 6 }}>
-              <b className="small">To settle up</b>
-              {settle.length ? settle.map(([a, b, m], i) => <span key={i}>{t.travelers[a]} pays {t.travelers[b]} <b>{inr(m)}</b></span>) : <span className="small muted">All square.</span>}
-            </div>
-          </div>
-        </section>
-      )}
     </>
   );
 }

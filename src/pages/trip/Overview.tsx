@@ -11,6 +11,7 @@ import { DestinationSearch, type PickedDest } from '../../components/Destination
 import { InsertDestDialog } from '../../components/InsertDestDialog';
 import { FX_SUPPORTED } from '../../data/currencies';
 import { byLevel } from '../../engine/checks';
+import { involved, removeTraveller } from '../../engine/expenses';
 import { readiness } from '../../engine/readiness';
 import { isAct } from '../../engine/schedule';
 import type { PaceKey, Warning } from '../../engine/types';
@@ -95,14 +96,11 @@ export function Overview({ t, A, fix, goDay }: TabProps) {
             {t.travelers.map((n, i) => (
               <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }} key={i}>
                 <CommitInput type="text" value={n} aria-label={`Traveller ${i + 1}`} onCommit={(v) => set((x) => { x.travelers[i] = v.trim() || `Traveller ${i + 1}`; })} />
-                <button type="button" className="btn icon" disabled={t.travelers.length < 2} aria-label={`Remove ${n}`} onClick={() => mut(t.id, (x) => {
-                  if (x.travelers.length < 2) return false;
-                  x.travelers.splice(i, 1);
-                  for (const e of x.expenses) {
-                    if (e.paid === i) e.paid = 0; else if (e.paid > i) e.paid--;
-                    e.among = (e.among || []).filter((k) => k !== i).map((k) => (k > i ? k - 1 : k));
-                  }
-                }, 'Traveller removed', true)}>×</button>
+                <button type="button" className="btn icon" disabled={t.travelers.length < 2} aria-label={`Remove ${n}`} onClick={() => {
+                  const k = involved(t, i);
+                  if (k) { toast(`${n} is part of ${k} expense${k === 1 ? '' : 's'} or payment${k === 1 ? '' : 's'}. Remove them from those first (Expenses tab).`); return; }
+                  mut(t.id, (x) => (removeTraveller(x, i) ? undefined : false), 'Traveller removed', true);
+                }}>×</button>
               </div>
             ))}
             <button type="button" className="btn sm" onClick={() => set((x) => { x.travelers.push('Traveller ' + (x.travelers.length + 1)); })}>Add traveller</button>

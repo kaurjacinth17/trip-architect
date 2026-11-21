@@ -126,6 +126,16 @@ export interface Prefs {
   tier: Tier;
 }
 
+export type SplitKind = 'equal' | 'exact' | 'percent' | 'shares' | 'adjust';
+/** Who paid how much, in the expense currency */
+export interface Payer { who: number; amt: number }
+/**
+ * How an expense is shared. `values` is indexed by traveller: exact amounts (expense currency), percentages,
+ * share weights (2:1:1) or adjustments (+/− on top of an equal split). Unused for `equal`.
+ */
+export interface Split { kind: SplitKind; among: number[]; values?: (number | null)[] }
+export interface ExpenseChange { at: number; by: string; text: string }
+
 export interface Expense {
   id: string;
   /** Amount in `cur` (INR when absent) */
@@ -136,9 +146,43 @@ export interface Expense {
   fxDate?: string;
   cat: BudgetKey;
   date: string;
+  /** "HH:MM", optional */
+  time?: string;
+  /** Primary payer. Kept in step with `payers` (the largest payer) so older readers still work. */
   paid: number;
+  /** Who shares it. Kept in step with `split.among`. */
   among: number[];
+  /** Description */
   note: string;
+  /** Longer notes */
+  notes?: string;
+  /** Linked itinerary item */
+  itemId?: string;
+  /** Several payers (absent: `paid` paid it all) */
+  payers?: Payer[];
+  /** Split (absent: equal among `among`) */
+  split?: Split;
+  created?: number;
+  updated?: number;
+  /** Soft delete: when it was deleted (restorable) */
+  deleted?: number;
+  history?: ExpenseChange[];
+}
+
+export type PayMethod = 'upi' | 'cash' | 'bank' | 'other';
+/** A settlement between two travellers, INR. The app never moves money; this records what people did. */
+export interface Payment {
+  id: string;
+  from: number;
+  to: number;
+  amt: number;
+  date: string;
+  method: PayMethod;
+  note: string;
+  /** Created by "Mark settled" on this expense */
+  expenseId?: string;
+  created: number;
+  deleted?: number;
 }
 
 export type StayStatus = 'idea' | 'shortlisted' | 'booked';
@@ -198,6 +242,12 @@ export interface Trip {
   wish: Item[];
   budget: Budget;
   expenses: Expense[];
+  /** Settlements (schema v4) */
+  payments?: Payment[];
+  /** UPI IDs travellers chose to share, by traveller index (for "Pay via UPI" links) */
+  travelerUpi?: (string | null)[];
+  /** Which traveller is using this device (for the edit history); guests choose it in Expenses */
+  me?: number;
   stays: Stay[];
   pack: PackItem[];
   notes: string;

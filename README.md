@@ -2,7 +2,7 @@
 
 A travel planning workspace. Explore destinations, compare them, create a trip and get a fully editable
 day-by-day itinerary that checks itself for unrealistic plans while you stay in control. Each trip also has a
-map, a budget and expense tracker with group splits, a stay comparison, a packing list, a readiness score, and
+map, a budget with automatic lines, Splitwise-style group expenses (several payers, five split types, settle up and UPI links), a stay comparison, a packing list, a readiness score, and
 export, print and share options.
 
 > ChatGPT gives you answers. Trip Architect gives you a system to manage your trip.

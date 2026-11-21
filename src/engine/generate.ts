@@ -207,7 +207,7 @@ export function buildTrip(o: BuildInput): Trip {
     dests: o.dests, start: o.start || '', days: o.days, group: o.group || 'couple', travelers: o.travelers,
     pace: o.pace, prefs: o.prefs, budgetTotal: o.budgetTotal || 0,
     plan: [], wish: [], budget: { travel: 0, stay: 0, food: 0, local: 0, act: 0, shop: 0, misc: 0 },
-    expenses: [], stays: [], pack: [], notes: '', created: now, updated: now,
+    expenses: [], payments: [], stays: [], pack: [], notes: '', created: now, updated: now,
     destRecords: o.destRecords || {}, currency: o.currency || 'INR',
     budgetMode: { stay: 'auto', act: 'auto' },
   };

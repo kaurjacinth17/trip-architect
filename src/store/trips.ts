@@ -10,7 +10,7 @@ import { purgeExpiredCoords, stripLiveNames } from '../engine/coords';
 import { clone, uid } from '../engine/util';
 
 export const STORAGE_KEY = 'trip-architect-v1';
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 export const UNDO_LIMIT = 60;
 
 export type Weights = Record<FactorKey | 'season', number>;
@@ -90,6 +90,14 @@ export function upgradeTripV3(t: Trip): Trip {
   return { ...t, budgetMode: { stay: t.budgetMode?.stay || 'manual', act: t.budgetMode?.act || 'manual' } };
 }
 
+/**
+ * v3 → v4: settlements. Existing expenses are read as single payer (`paid`), equal split (`among`), unsettled;
+ * their fields are left exactly as they were (no data loss), and gain payers/split only when edited.
+ */
+export function upgradeTripV4(t: Trip): Trip {
+  return { ...t, payments: t.payments || [] };
+}
+
 export function migrate(persisted: unknown, version: number): Persisted {
   const p = (persisted || {}) as Partial<Persisted>;
   const trips: Record<string, Trip> = {};
@@ -97,7 +105,7 @@ export function migrate(persisted: unknown, version: number): Persisted {
     // v0: the single-file prototype. Normalise every trip but keep ids so links still work.
     for (const t of Object.values(p.trips || {})) {
       try {
-        const n = upgradeTripV3(upgradeTripV2(normaliseTrip(t, { keepId: true })));
+        const n = upgradeTripV4(upgradeTripV3(upgradeTripV2(normaliseTrip(t, { keepId: true }))));
         trips[n.id] = n;
       } catch { /* drop unreadable trips */ }
     }
@@ -107,6 +115,7 @@ export function migrate(persisted: unknown, version: number): Persisted {
     let t = t0;
     if (version < 2) t = upgradeTripV2(t);
     if (version < 3) t = upgradeTripV3(t);
+    if (version < 4) t = upgradeTripV4(t);
     trips[id] = t;
   }
   return { trips, compare: { ...DEFAULT_COMPARE, ...(p.compare || {}) } };

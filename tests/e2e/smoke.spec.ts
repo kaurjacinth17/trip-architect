@@ -5,7 +5,7 @@ const SAMPLE = '/trips/sample-jaipur';
 
 const ROUTES = [
   '/', '/explore', '/explore?mood=beach', '/destinations/jaipur', '/destinations/goa', '/destinations/jaipur/guide', '/destinations/jaipur/guide?tab=areas', '/compare', '/new', '/new?dest=udaipur', '/trips',
-  ...['overview', 'itinerary', 'map', 'budget', 'stays', 'packing', 'share', 'print'].map((t) => `${SAMPLE}/${t}`),
+  ...['overview', 'itinerary', 'map', 'budget', 'expenses', 'stays', 'packing', 'share', 'print'].map((t) => `${SAMPLE}/${t}`),
   '/shared', '/about', '/terms', '/privacy', '/no-such-page',
 ];
 

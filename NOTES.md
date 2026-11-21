@@ -166,3 +166,32 @@ Judgement calls made while implementing the upgrade, so they can be reviewed:
   distance to your plan in that destination (or to the centre), nearest main railway station and airport (two Nearby
   Search Pro calls when the comparison opens, cached for the session), your price and notes if saved, and Check
   prices links.
+
+### Phase 7 notes
+
+- **Expenses tab** (new). Every expense is fully editable: description, amount, currency, category, date and time,
+  linked activity and notes; paid by one person or several (amounts must add up); split equally, by exact amounts,
+  percentages, shares or adjustments. All maths is in integer paise (`src/engine/expenses.ts`), so splits add up to
+  the paisa and balances sum to exactly zero. Rounding remainders go to the payer (the largest payer when there are
+  several; the first person sharing it if the payer isn't), and the form says so.
+- **Foreign currency:** amounts are split in the expense currency, then each person's share is converted to the ₹
+  value fixed at entry (largest-remainder rounding, so the ₹ shares still add up exactly).
+- **Edit history** per expense ("Aman changed ₹1,200 → ₹1,450; split equal → exact"), credited to the traveller
+  chosen in "I am" (guests) or "You". Deletes are soft: Undo in the toast, or Restore under "Recently deleted".
+- **Settling:** "Settle" on an expense records linked payments for chosen people or everyone ("✓ Settled 22 Dec via
+  UPI"), and can be un-settled per person. Editing a settled expense offers to settle it again with the new
+  amounts. "Record a payment" covers anything else. With several payers, debtors are matched to creditors largest
+  first, so every payment is exact.
+- **Balances** with a drill-down per person, and a **Simplify debts** switch (on: fewest payments; off: what each
+  pair owes from their shared expenses).
+- **UPI:** a traveller's UPI ID, if they chose to share it, enables "Pay ₹X via UPI" (`upi://pay?pa=…&pn=…&am=…&cu=INR&tn=…`)
+  and "I've paid". The app never processes money. UPI IDs stay in the trip on the device and in trip files, and are
+  removed from read-only share links.
+- **Views:** all, by person, by day, by category, unsettled; CSV export (formula-looking cells are neutralised).
+  Spend summary in Share ("Copy spend summary") and in Print.
+- **Receipts** need an account (Phase 8, Supabase Storage); guests see a note.
+- **Removing a traveller** who is part of a live expense or payment is refused with a message (it used to silently
+  move their expenses to the first traveller). Others are renumbered.
+- **Migration (schema v4):** trips gain `payments: []`. Existing expenses are left exactly as they were and are read
+  as single payer, equal split, unsettled; they gain payers/split fields only when edited.
+- The Budget tab keeps the categories and the spending chart and links to Expenses.

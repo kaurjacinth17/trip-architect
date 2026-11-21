@@ -16,6 +16,7 @@ import { useTrips } from '../../store/trips';
 import { useUI } from '../../store/ui';
 import { Overview } from './Overview';
 import { Budget } from './Budget';
+import { Expenses } from './expenses/Expenses';
 import { Stays } from './Stays';
 import { Packing } from './Packing';
 import { Share } from './Share';
@@ -23,7 +24,7 @@ import { Share } from './Share';
 const Studio = lazy(() => import('./Studio'));
 const TripMap = lazy(() => import('./TripMap'));
 
-export const TABS = [['overview', 'Overview'], ['itinerary', 'Itinerary'], ['map', 'Map'], ['budget', 'Budget'], ['stays', 'Stays'], ['packing', 'Packing'], ['share', 'Share']] as const;
+export const TABS = [['overview', 'Overview'], ['itinerary', 'Itinerary'], ['map', 'Map'], ['budget', 'Budget'], ['expenses', 'Expenses'], ['stays', 'Stays'], ['packing', 'Packing'], ['share', 'Share']] as const;
 export type TabKey = (typeof TABS)[number][0];
 
 export interface TabProps {
@@ -89,6 +90,7 @@ export default function TripPage() {
         {tab === 'itinerary' && <Studio {...props} />}
         {tab === 'map' && <TripMap {...props} />}
         {tab === 'budget' && <Budget {...props} />}
+        {tab === 'expenses' && <Expenses {...props} />}
         {tab === 'stays' && <Stays {...props} />}
         {tab === 'packing' && <Packing {...props} />}
         {tab === 'share' && <Share {...props} />}
