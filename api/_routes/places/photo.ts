@@ -1,10 +1,10 @@
 // GET /api/places/photo?name=places/…/photos/…&w=800  A short-lived photo URI from Google (Place Details Photos).
 // The image itself is loaded by the browser from Google; it is never downloaded, re-hosted or cached here.
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { googlePlaces } from '../../_lib/google';
-import { handler, json } from '../../_lib/http';
-import { PhotoNameSchema } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { googlePlaces } from '../../_lib/google.js';
+import { handler, json } from '../../_lib/http.js';
+import { PhotoNameSchema } from '../../_lib/places.js';
 
 const Q = z.object({ name: PhotoNameSchema, w: z.coerce.number().int().min(80).max(1600).default(800) });
 

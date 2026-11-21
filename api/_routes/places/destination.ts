@@ -1,9 +1,9 @@
 // GET /api/places/destination?id=…&session=…  Details for a chosen destination (closes the autocomplete session).
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { googlePlaces } from '../../_lib/google';
-import { handler, json } from '../../_lib/http';
-import { MASKS, PlaceIdSchema, mapDestination, type GPlace } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { googlePlaces } from '../../_lib/google.js';
+import { handler, json } from '../../_lib/http.js';
+import { MASKS, PlaceIdSchema, mapDestination, type GPlace } from '../../_lib/places.js';
 
 const Q = z.object({ id: PlaceIdSchema, session: z.string().regex(/^[A-Za-z0-9-]{8,64}$/).optional() });
 

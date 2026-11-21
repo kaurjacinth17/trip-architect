@@ -1,10 +1,10 @@
 // GET /api/places/address?id=<placeId>&lang=hi  A place's formatted address in a language (Place Details Essentials),
 // for the "show to driver" card. Fetched live each time; never stored.
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { googlePlaces } from '../../_lib/google';
-import { handler, json } from '../../_lib/http';
-import { MASKS, PlaceIdSchema } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { googlePlaces } from '../../_lib/google.js';
+import { handler, json } from '../../_lib/http.js';
+import { MASKS, PlaceIdSchema } from '../../_lib/places.js';
 
 const Q = z.object({ id: PlaceIdSchema, lang: z.enum(['en', 'hi', 'bn', 'ta', 'te', 'kn', 'ml', 'mr', 'gu', 'pa', 'or', 'as', 'ur', 'ne']).default('en') });
 

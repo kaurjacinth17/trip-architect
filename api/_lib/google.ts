@@ -1,8 +1,8 @@
 // The only place that talks to Places API (New). Every call: key configured? → daily SKU budget → strict field
 // mask → Google error mapping. Responses are passed through in memory only; nothing here is stored.
-import { spend, QUOTA_MESSAGE, type Sku } from './budget';
-import { env } from './env';
-import { ApiError } from './http';
+import { spend, QUOTA_MESSAGE, type Sku } from './budget.js';
+import { env } from './env.js';
+import { ApiError } from './http.js';
 
 export const PLACES_BASE = 'https://places.googleapis.com/v1/';
 

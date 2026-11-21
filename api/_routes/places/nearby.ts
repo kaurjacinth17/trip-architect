@@ -2,10 +2,10 @@
 // on or "Search this area" is tapped. Restaurants, cafés and attractions use Nearby Search Enterprise (ratings,
 // price, open now); ATMs and pharmacies use Nearby Search Pro (no ratings needed).
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { googlePlaces } from '../../_lib/google';
-import { handler, json, readJson } from '../../_lib/http';
-import { LatLngSchema, MASKS, mapPlace, type GPlace } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { googlePlaces } from '../../_lib/google.js';
+import { handler, json, readJson } from '../../_lib/http.js';
+import { LatLngSchema, MASKS, mapPlace, type GPlace } from '../../_lib/places.js';
 
 export const LAYERS = {
   restaurants: { types: ['restaurant'], rich: true },

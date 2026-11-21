@@ -1,8 +1,8 @@
 // GET /api/climate?lat=…&lng=…  Monthly climate normals from Open-Meteo's historical archive (CC BY 4.0).
 // Coordinates are rounded to 0.1° so nearby requests share the edge cache.
 import { z } from 'zod';
-import { handler, json } from '../_lib/http';
-import { edgeCache, fetchJson } from '../_lib/upstream';
+import { handler, json } from '../_lib/http.js';
+import { edgeCache, fetchJson } from '../_lib/upstream.js';
 
 const Q = z.object({ lat: z.coerce.number().min(-90).max(90), lng: z.coerce.number().min(-180).max(180) });
 export const YEARS = { from: 2015, to: 2024 };

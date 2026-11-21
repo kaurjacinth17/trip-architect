@@ -4,9 +4,9 @@
 // Defaults are floor(monthly free usage / 31) minus a margin, from "Google Maps Platform core services
 // pricing list – India" (checked 20 Nov 2026). With Upstash configured the counter is shared by every
 // function instance; without it each instance counts separately (development only).
-import { ApiError } from './http';
-import { env } from './env';
-import { redis } from './redis';
+import { ApiError } from './http.js';
+import { env } from './env.js';
+import { redis } from './redis.js';
 
 export type Sku =
   | 'autocomplete'                 // Autocomplete Requests (India): 70,000 free / month

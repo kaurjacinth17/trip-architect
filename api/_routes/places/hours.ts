@@ -1,10 +1,10 @@
 // GET /api/places/hours?id=…  Opening periods and open/closed status for one place in the day being viewed.
 // Held in memory by the client only; used for the opening-hours checks.
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { googlePlaces } from '../../_lib/google';
-import { handler, json } from '../../_lib/http';
-import { MASKS, PlaceIdSchema, mapPeriods, type GPlace } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { googlePlaces } from '../../_lib/google.js';
+import { handler, json } from '../../_lib/http.js';
+import { MASKS, PlaceIdSchema, mapPeriods, type GPlace } from '../../_lib/places.js';
 
 const Q = z.object({ id: PlaceIdSchema });
 

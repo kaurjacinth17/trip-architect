@@ -1,8 +1,8 @@
 // POST /api/invites/create  { tripId, role, days, maxUses, email? }  Owner only. Returns a join link; only a hash of
 // its token is stored. Email invites open the owner's mail app with the link (no email service is used).
 import { z } from 'zod';
-import { ApiError, handler, json, readJson } from '../../_lib/http';
-import { admin, newToken, roleOf, sha256, verifyUser } from '../../_lib/supabase';
+import { ApiError, handler, json, readJson } from '../../_lib/http.js';
+import { admin, newToken, roleOf, sha256, verifyUser } from '../../_lib/supabase.js';
 
 const Body = z.object({
   tripId: z.string().uuid(),

@@ -1,7 +1,7 @@
 // GET /api/weather?lat=…&lng=…  16-day daily forecast from Open-Meteo (CC BY 4.0), edge-cached for 3 hours.
 import { z } from 'zod';
-import { handler, json } from '../_lib/http';
-import { edgeCache, fetchJson } from '../_lib/upstream';
+import { handler, json } from '../_lib/http.js';
+import { edgeCache, fetchJson } from '../_lib/upstream.js';
 
 const Q = z.object({ lat: z.coerce.number().min(-90).max(90), lng: z.coerce.number().min(-180).max(180) });
 interface Forecast { daily?: { time: string[]; temperature_2m_max: (number | null)[]; temperature_2m_min: (number | null)[]; precipitation_probability_max: (number | null)[]; precipitation_sum: (number | null)[]; weather_code: (number | null)[] } }

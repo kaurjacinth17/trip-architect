@@ -3,10 +3,10 @@
 // The image is loaded by the browser from Google (never downloaded or re-hosted); the photographer is credited.
 // The answer is cached at the edge for a few hours so a busy Explore page stays inside the daily photo budget.
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { googlePlaces } from '../../_lib/google';
-import { handler, json } from '../../_lib/http';
-import { MASKS, type GPlace } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { googlePlaces } from '../../_lib/google.js';
+import { handler, json } from '../../_lib/http.js';
+import { MASKS, type GPlace } from '../../_lib/places.js';
 
 const Q = z.object({ q: z.string().trim().min(2).max(120), w: z.coerce.number().int().min(200).max(1200).default(800) });
 

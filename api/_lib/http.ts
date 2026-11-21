@@ -1,8 +1,8 @@
 // Typed errors and JSON responses for every function. Error bodies are generic: upstream messages, stack traces
 // and request URLs (which could contain keys) are never echoed to the client.
 import { ZodError } from 'zod';
-import { clientIp } from './ip';
-import { rateLimit } from './ratelimit';
+import { clientIp } from './ip.js';
+import { rateLimit } from './ratelimit.js';
 
 export type ErrorCode =
   | 'bad_request' | 'not_found' | 'method_not_allowed' | 'rate_limited' | 'quota_exhausted'

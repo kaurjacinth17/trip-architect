@@ -1,7 +1,7 @@
 // Per-IP rate limiting: Upstash sliding window when configured, otherwise a best-effort in-memory fixed window
 // (per function instance, so it's a speed bump rather than a guarantee).
 import { Ratelimit } from '@upstash/ratelimit';
-import { redis } from './redis';
+import { redis } from './redis.js';
 
 const limiters = new Map<string, Ratelimit>();
 const memory = new Map<string, { count: number; reset: number }>();

@@ -1,8 +1,8 @@
 // POST /api/members/update  { tripId, userId, role?, remove?, travellerIndex? }  Owner manages members: change role
 // (editor/viewer), remove someone, or link a member to a traveller in the trip. Members may set their own traveller.
 import { z } from 'zod';
-import { ApiError, handler, json, readJson } from '../../_lib/http';
-import { admin, eq, roleOf, verifyUser } from '../../_lib/supabase';
+import { ApiError, handler, json, readJson } from '../../_lib/http.js';
+import { admin, eq, roleOf, verifyUser } from '../../_lib/supabase.js';
 
 const Body = z.object({
   tripId: z.string().uuid(),

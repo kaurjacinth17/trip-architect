@@ -1,6 +1,6 @@
 // Fetch JSON from a non-Google provider with a timeout and an identifying User-Agent (Wikipedia and Overpass ask
 // for one). No personal contact details are sent.
-import { ApiError } from './http';
+import { ApiError } from './http.js';
 
 export const USER_AGENT = 'TripArchitect/2.0 (+https://trip-architect-pi.vercel.app/about)';
 

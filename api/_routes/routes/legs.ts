@@ -1,10 +1,10 @@
 // POST /api/routes/legs  { legs: [{ from, to }], mode }  Live travel times for consecutive stops of ONE day
 // (optional setting, off by default). One Compute Routes Essentials call per leg, no traffic data.
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { ROUTES_BASE, googlePlaces } from '../../_lib/google';
-import { handler, json, readJson } from '../../_lib/http';
-import { LatLngSchema, MASKS } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { ROUTES_BASE, googlePlaces } from '../../_lib/google.js';
+import { handler, json, readJson } from '../../_lib/http.js';
+import { LatLngSchema, MASKS } from '../../_lib/places.js';
 
 const Body = z.object({
   legs: z.array(z.object({ key: z.string().max(40), from: LatLngSchema, to: LatLngSchema })).min(1).max(12),

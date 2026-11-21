@@ -1,7 +1,7 @@
 // GET /api/fx?base=INR  Daily reference rates from Frankfurter (European Central Bank). Cached for 6 hours.
 import { z } from 'zod';
-import { ApiError, handler, json } from '../_lib/http';
-import { edgeCache, fetchJson } from '../_lib/upstream';
+import { ApiError, handler, json } from '../_lib/http.js';
+import { edgeCache, fetchJson } from '../_lib/upstream.js';
 
 const Q = z.object({ base: z.string().regex(/^[A-Z]{3}$/).default('INR') });
 

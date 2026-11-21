@@ -2,8 +2,8 @@
 // few operations RLS deliberately doesn't allow from the browser (joining a trip, changing roles, maintenance).
 // The service-role key never leaves the server.
 import { createHash, randomBytes } from 'node:crypto';
-import { ApiError } from './http';
-import { env } from './env';
+import { ApiError } from './http.js';
+import { env } from './env.js';
 
 export interface SbUser { id: string; email?: string }
 

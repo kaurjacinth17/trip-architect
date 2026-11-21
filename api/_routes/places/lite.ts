@@ -1,10 +1,10 @@
 // GET /api/places/lite?id=…  Name and coordinates of a place saved in a trip. Shown live, never stored
 // (coordinates may be cached by the client for up to 30 days).
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { googlePlaces } from '../../_lib/google';
-import { handler, json } from '../../_lib/http';
-import { MASKS, PlaceIdSchema, mapPlace, type GPlace } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { googlePlaces } from '../../_lib/google.js';
+import { handler, json } from '../../_lib/http.js';
+import { MASKS, PlaceIdSchema, mapPlace, type GPlace } from '../../_lib/places.js';
 
 const Q = z.object({ id: PlaceIdSchema });
 

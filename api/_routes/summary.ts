@@ -1,8 +1,8 @@
 // GET /api/summary?title=…&lat=…&lng=…  Wikipedia page summary (CC BY-SA). Rejects disambiguation pages and articles
 // whose coordinates are far from the destination, so "Spiti" doesn't return the wrong place.
 import { z } from 'zod';
-import { handler, json } from '../_lib/http';
-import { edgeCache, fetchJson } from '../_lib/upstream';
+import { handler, json } from '../_lib/http.js';
+import { edgeCache, fetchJson } from '../_lib/upstream.js';
 
 const Q = z.object({ title: z.string().trim().min(1).max(100), lat: z.coerce.number().min(-90).max(90).optional(), lng: z.coerce.number().min(-180).max(180).optional() });
 

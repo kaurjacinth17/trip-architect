@@ -266,3 +266,11 @@ are unchanged. A test fails if another deployable file appears in `api/`.
   one-time "What's new" banner.
 - **Not done / limits:** template gallery (needs accounts in production), booking files don't sync between devices,
   receipt photo uploads, Lighthouse score not measured here, per-member (rather than per-trip) needs.
+
+### Fix: API functions crashed on Vercel (500 FUNCTION_INVOCATION_FAILED)
+
+`package.json` has `"type": "module"`, and Vercel compiles each file in `api/` to an unbundled ES module. Node's ESM
+loader needs file extensions, so extensionless relative imports (`'../_lib/http'`) failed at startup
+(ERR_MODULE_NOT_FOUND) and every `/api` call returned 500. That's why live data never worked in production. All
+relative imports in `api/` now end in `.js` (TypeScript maps them to the `.ts` files), verified by compiling each file
+with esbuild and loading the router under Node 22, and a test now fails if an extensionless import comes back.

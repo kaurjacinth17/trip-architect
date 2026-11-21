@@ -1,6 +1,6 @@
 // Upstash Redis when UPSTASH_* is set (shared across function instances), otherwise null.
 import { Redis } from '@upstash/redis';
-import { env } from './env';
+import { env } from './env.js';
 
 let client: Redis | null | undefined;
 export function redis(): Redis | null {

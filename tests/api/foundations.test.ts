@@ -157,6 +157,15 @@ describe('single API router (Vercel Hobby allows 12 functions per deployment)', 
       .filter((f) => f.endsWith('.ts') && !f.split('/').some((s) => s.startsWith('_')));
     expect(files.sort()).toEqual(['cron/keepalive.ts', 'router.ts']);
   });
+  it('every relative import in api/ ends in .js (Vercel runs these files as Node ES modules, unbundled)', () => {
+    const bad: string[] = [];
+    for (const f of fs.readdirSync('api', { recursive: true }) as string[]) {
+      if (!f.endsWith('.ts')) continue;
+      const src = fs.readFileSync(path.join('api', f), 'utf8');
+      for (const m of src.matchAll(/from '(\.{1,2}\/[^']+)'/g)) if (!m[1].endsWith('.js')) bad.push(`${f}: ${m[1]}`);
+    }
+    expect(bad).toEqual([]);
+  });
   it('dispatches /api/<path> (from the rewrite or the URL), place IDs, and never exposes _lib or _routes', async () => {
     expect(resolve('health')).toBe(ROUTES.health);
     expect(resolve('places/ChIJTESTplace0000000001')).toBeTruthy();

@@ -1,30 +1,30 @@
 // The one Vercel function behind every /api/* endpoint (vercel.json rewrites /api/<path> here as ?__path=<path>).
 // Vercel's Hobby plan allows 12 functions per deployment; routing in one function keeps the site on the free plan.
 // Endpoint modules live in api/_routes/ (underscore folders aren't deployed as functions of their own).
-import { ApiError, errorResponse, type Handler } from './_lib/http';
-import * as areas from './_routes/areas';
-import * as climate from './_routes/climate';
-import * as fx from './_routes/fx';
-import * as health from './_routes/health';
-import * as inviteCreate from './_routes/invites/create';
-import * as inviteRedeem from './_routes/invites/redeem';
-import * as members from './_routes/members/update';
-import * as placeId from './_routes/places/[id]';
-import * as autocomplete from './_routes/places/autocomplete';
-import * as address from './_routes/places/address';
-import * as cover from './_routes/places/cover';
-import * as destination from './_routes/places/destination';
-import * as hours from './_routes/places/hours';
-import * as lite from './_routes/places/lite';
-import * as nearby from './_routes/places/nearby';
-import * as photo from './_routes/places/photo';
-import * as search from './_routes/places/search';
-import * as placeSummary from './_routes/places/summary';
-import * as transport from './_routes/places/transport';
-import * as legs from './_routes/routes/legs';
-import * as summary from './_routes/summary';
-import * as weather from './_routes/weather';
-import * as keepalive from './cron/keepalive';
+import { ApiError, errorResponse, type Handler } from './_lib/http.js';
+import * as areas from './_routes/areas.js';
+import * as climate from './_routes/climate.js';
+import * as fx from './_routes/fx.js';
+import * as health from './_routes/health.js';
+import * as inviteCreate from './_routes/invites/create.js';
+import * as inviteRedeem from './_routes/invites/redeem.js';
+import * as members from './_routes/members/update.js';
+import * as placeId from './_routes/places/[id].js';
+import * as autocomplete from './_routes/places/autocomplete.js';
+import * as address from './_routes/places/address.js';
+import * as cover from './_routes/places/cover.js';
+import * as destination from './_routes/places/destination.js';
+import * as hours from './_routes/places/hours.js';
+import * as lite from './_routes/places/lite.js';
+import * as nearby from './_routes/places/nearby.js';
+import * as photo from './_routes/places/photo.js';
+import * as search from './_routes/places/search.js';
+import * as placeSummary from './_routes/places/summary.js';
+import * as transport from './_routes/places/transport.js';
+import * as legs from './_routes/routes/legs.js';
+import * as summary from './_routes/summary.js';
+import * as weather from './_routes/weather.js';
+import * as keepalive from './cron/keepalive.js';
 
 type Mod = Partial<Record<'GET' | 'POST' | 'DELETE' | 'PATCH', Handler>>;
 export const ROUTES: Record<string, Mod> = {

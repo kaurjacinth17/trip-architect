@@ -1,9 +1,9 @@
 // POST /api/places/search  One page (20) of places for a destination tab. Text Search Enterprise.
 import { z } from 'zod';
-import { dedupe } from '../../_lib/dedupe';
-import { googlePlaces } from '../../_lib/google';
-import { handler, json, readJson } from '../../_lib/http';
-import { LatLngSchema, MASKS, ViewportSchema, mapPlace, type GPlace } from '../../_lib/places';
+import { dedupe } from '../../_lib/dedupe.js';
+import { googlePlaces } from '../../_lib/google.js';
+import { handler, json, readJson } from '../../_lib/http.js';
+import { LatLngSchema, MASKS, ViewportSchema, mapPlace, type GPlace } from '../../_lib/places.js';
 
 export const TABS = {
   famous: { q: 'top tourist attractions', type: 'tourist_attraction' },
