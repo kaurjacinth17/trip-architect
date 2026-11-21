@@ -95,12 +95,13 @@ function nnFrom(from: Item | null, g: Item[], startMinute: number, open?: OpenTe
  * Reorder mapped items by nearest neighbour (unmapped items keep their slots) and re-time from the first start.
  * Locked items are anchors: only the items between them are reordered and re-timed.
  */
-export function routeOrder(day: Day, open?: OpenTest): boolean {
+export function routeOrder(day: Day, open?: OpenTest, ends?: { start?: { lat: number; lng: number } | null }): boolean {
   sortDay(day);
   const it = day.items;
   const g = it.filter(geo);
-  if (g.length < 3) return false;
-  if (!it.some((x) => x.locked) && !open) {
+  const home = ends?.start || null;
+  if (g.length < (home ? 2 : 3)) return false;
+  if (!it.some((x) => x.locked) && !open && !home) {
     const start = it[0].s;
     const order = nnOrder(g);
     const res: Item[] = [];
@@ -116,18 +117,19 @@ export function routeOrder(day: Day, open?: OpenTest): boolean {
     return true;
   }
   const res: Item[] = [];
-  let anchor: Item | null = null;
+  // Starting from the hotel: the first stop is the one nearest the hotel (a virtual anchor, never added to the day).
+  let anchor: Item | null = home ? { ...customItem({ lat: home.lat, lng: home.lng, s: it[0].s, d: 0 }), id: '__home' } : null;
   let seg: Item[] = [];
   const flush = () => {
     if (!seg.length) return;
-    const startClock = anchor ? anchor.s + anchor.d : seg[0].s;
+    const startClock = anchor && anchor.id !== '__home' ? anchor.s + anchor.d : seg[0].s;
     const order = nnFrom(anchor && geo(anchor) ? anchor : null, seg.filter(geo), startClock, open);
     let gi = 0;
     const placed = seg.map((x) => (geo(x) ? order[gi++] : x));
     let cur = startClock;
     let prev = anchor;
     placed.forEach((x, i) => {
-      if (prev && (i || anchor)) cur += trm(prev, x);
+      if (prev && prev.id !== '__home' && (i || anchor)) cur += trm(prev, x);
       x.s = up5(cur);
       cur = x.s + x.d;
       prev = x;

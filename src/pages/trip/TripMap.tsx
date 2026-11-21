@@ -1,7 +1,7 @@
 // Trip map on Google Maps: numbered pins coloured by day, a dashed route per day, the hotel, area circles, nearby
 // layers (searched only when switched on or on "Search this area") and "Navigate this day" links.
 import { useQueries } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { GMap, hasGoogleMaps, MapFallback, type GPin, type GRoute, type MapView } from '../../components/GMap';
 import { CATS, DAYC } from '../../data/constants';
 import { D, PL } from '../../data/destinations';
@@ -22,6 +22,13 @@ import { useUI, type MapLayers } from '../../store/ui';
 import { mapsLink } from '../Destination';
 import { GoogleAttribution } from '../LiveDestination';
 import type { TabProps } from './TripPage';
+import { toast } from '../../store/toast';
+import { addLiveToDay } from '../../engine/livePool';
+import { toGuidePlace, type ApiPlace } from '../../lib/guide';
+import { StayPrompt } from './StayPrompt';
+
+const DetailDrawer = lazy(() => import('../guide/CityGuide').then((m) => ({ default: m.DetailDrawer })));
+const OverviewMap = lazy(() => import('../../components/OverviewMap'));
 
 const LAYERS: [keyof MapLayers, string][] = [['plan', 'Planned'], ['wish', 'Wishlist'], ['lib', 'All guide places'], ['stay', 'Stays'], ['area', 'Areas']];
 type Nearby = 'restaurants' | 'cafes' | 'attractions' | 'atms' | 'pharmacies';
@@ -36,6 +43,7 @@ export default function TripMap({ t, goDay }: TabProps) {
   const di = fd === 'all' ? Math.min(day, t.plan.length - 1) : fd;
   const live = useLiveStatus((s) => s.state === 'live');
   const [layers, setLayers] = useState<Nearby[]>([]);
+  const [open, setOpen] = useState<(LiveListPlace & { layer: Nearby }) | null>(null);
   const [view, setView] = useState<MapView | null>(null);
   const [area, setArea] = useState<MapView | null>(null);
   const [minRating, setMinRating] = useState(0);
@@ -112,11 +120,11 @@ export default function TripMap({ t, goDay }: TabProps) {
       <div className="row" style={{ gap: 6, marginBottom: 10 }} role="group" aria-label="Nearby">
         <span className="small muted">Nearby</span>
         {NEARBY.map(([k, l, col]) => (
-          <button key={k} type="button" className={'chip' + (layers.includes(k) ? ' on' : '')} aria-pressed={layers.includes(k)} disabled={!live} onClick={() => toggleLayer(k)}>
+          <button key={k} type="button" className={'chip' + (layers.includes(k) ? ' on' : '')} aria-pressed={layers.includes(k)} onClick={() => (live ? toggleLayer(k) : toast('Live places aren’t available on this site right now (Google key missing or today’s free limit reached). The rest of the map still works.'))}>
             <i className="dot" style={{ color: col, opacity: 1 }} />{l}
           </button>
         ))}
-        {!live && <span className="tiny muted">Live places aren’t available right now.</span>}
+        {!live && <span className="tiny muted">Live places aren’t available right now (check the Google key in Vercel).</span>}
       </div>
       {layers.some((l) => NEARBY.find((n) => n[0] === l)![3]) && (
         <div className="row" style={{ gap: 6, marginBottom: 10 }} role="group" aria-label="Nearby filters">
@@ -126,6 +134,7 @@ export default function TripMap({ t, goDay }: TabProps) {
           {[1, 2, 3, 4].map((x) => <button key={x} type="button" className={'chip' + (price.includes(x) ? ' on' : '')} aria-pressed={price.includes(x)} onClick={() => setPrice(price.includes(x) ? price.filter((y) => y !== x) : [...price, x])}>{['', 'Inexpensive', 'Moderate', 'Expensive', 'Very expensive'][x]}</button>)}
         </div>
       )}
+      <StayPrompt t={t} di={di} />
       <div className="mapwrap">
         <div style={{ position: 'relative' }}>
           {hasGoogleMaps()
@@ -137,13 +146,25 @@ export default function TripMap({ t, goDay }: TabProps) {
         <div className="grid" style={{ gap: 12, alignContent: 'start' }}>
           <Navigate t={t} di={di} mode={mode} setMode={setMode} />
           <SelectedCard t={t} sel={sel} di={di} goDay={goDay} nearby={nearby} />
-          {layers.length > 0 && <NearbyList t={t} di={di} list={nearby} loading={nearbyQ.some((q) => q.isLoading)} ref0={ref} onShow={(id) => set({ pin: 'n:' + id })} />}
+          {layers.length > 0 && <NearbyList t={t} di={di} list={nearby} loading={nearbyQ.some((q) => q.isLoading)} ref0={ref} onShow={(id) => set({ pin: 'n:' + id })} onOpen={setOpen} />}
           <div className="card small">
             <b>Reading the map</b>
             <p className="muted" style={{ marginTop: 6 }}>Dashed lines join each day’s stops in order. Shaded circles are neighbourhoods. Nearby places are searched only when you switch a layer on or tap “Search this area”.</p>
           </div>
         </div>
       </div>
+      <section className="sec">
+        <h2>Overview map</h2>
+        <p className="tiny muted" style={{ marginTop: 4 }}>A quick picture of the whole trip on OpenStreetMap: hand-picked guide places, your own pins and hotels you typed in, coloured by day. Places added from Google appear only on the Google map above, as Google’s terms require.</p>
+        <Suspense fallback={<p className="small muted">Loading map…</p>}><OverviewMap t={t} /></Suspense>
+      </section>
+      {open && (
+        <Suspense fallback={null}>
+          <DetailDrawer p={toGuidePlace(open as unknown as ApiPlace, 0)} tab={open.layer === 'restaurants' ? 'restaurants' : open.layer === 'cafes' ? 'cafes' : 'famous'} badges={{ mustSee: false, hiddenGem: false, editorsPick: false }} trip={t}
+            onClose={() => setOpen(null)} onVeg={() => {}}
+            onAction={(meal) => { const p = open; setOpen(null); mut(t.id, (tt) => { addLiveToDay(tt, p as LivePlace, { destKey: tt.plan[di].dest, di, meal }); }, `${p.name} added to Day ${di + 1}${meal ? ' as ' + meal : ''}`, true); }} />
+        </Suspense>
+      )}
     </>
   );
 }
@@ -220,7 +241,7 @@ function NearbyCard({ t, di, p }: { t: Trip; di: number; p: LiveListPlace & { la
   );
 }
 
-function NearbyList({ t, di, list, loading, ref0, onShow }: { t: Trip; di: number; list: (LiveListPlace & { layer: Nearby })[]; loading: boolean; ref0: { lat: number; lng: number } | null; onShow: (id: string) => void }) {
+function NearbyList({ t, di, list, loading, ref0, onShow, onOpen }: { t: Trip; di: number; list: (LiveListPlace & { layer: Nearby })[]; loading: boolean; ref0: { lat: number; lng: number } | null; onShow: (id: string) => void; onOpen: (p: LiveListPlace & { layer: Nearby }) => void }) {
   const sorted = [...list].sort((a, b) => (ref0 && a.location && b.location ? km(ref0, a.location)! - km(ref0, b.location)! : 0));
   return (
     <div className="card grid gbox" style={{ gap: 6 }}>
@@ -228,9 +249,11 @@ function NearbyList({ t, di, list, loading, ref0, onShow }: { t: Trip; di: numbe
       {loading && <p className="small muted">Searching…</p>}
       <div className="lib nearbylist">
         {sorted.slice(0, 40).map((p) => (
-          <div className="li" key={p.layer + p.id}>
+          <div className="li clickable" key={p.layer + p.id} role="button" tabIndex={0} aria-label={`Details of ${p.name}`}
+            onClick={(e) => { if (!(e.target as HTMLElement).closest('button,a')) { onShow(p.id); onOpen(p); } }}
+            onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); onShow(p.id); onOpen(p); } }}>
             <div>
-              <div className="nm"><button type="button" className="linkish" onClick={() => onShow(p.id)}>{p.name}</button></div>
+              <div className="nm"><button type="button" className="linkish" onClick={() => { onShow(p.id); onOpen(p); }}>{p.name}</button></div>
               <div className="mt">{NEARBY.find((n) => n[0] === p.layer)![1]}{p.rating != null ? ` · ★ ${p.rating.toFixed(1)}` : ''}{ref0 && p.location ? ` · ${fmtDist(km(ref0, p.location)!)} from Day ${di + 1}` : ''}</div>
             </div>
             {p.layer !== 'atms' && p.layer !== 'pharmacies'

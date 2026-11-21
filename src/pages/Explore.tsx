@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { DestinationSearch } from '../components/DestinationSearch';
-import { DestCard } from '../components/Cards';
+import { DestCard, PopularCard } from '../components/Cards';
+import { POPULAR } from '../data/popular';
 import { MONTHS, MOODS } from '../data/constants';
 import { DESTS } from '../data/destinations';
 import { seasonOf } from '../engine/season';
@@ -42,7 +43,7 @@ export function Explore() {
         <DestinationSearch label="Go anywhere: search any city, town, hill station, island, region or national park" onPick={(d) => nav(`/destinations/${d.key}`)} />
       </div>
       <h2 style={{ marginTop: 28 }}>Hand-written guides</h2>
-      <p className="muted small" style={{ marginTop: 6 }}>Eight destinations with curated places, visit timings and editor’s picks.</p>
+      <p className="muted small" style={{ marginTop: 6 }}>Eight destinations with curated places, visit timings and editor’s picks. More places across India follow below.</p>
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', marginTop: 14, gap: 12 }}>
         <input type="text" placeholder="Filter the guides or their places, e.g. ‘sunset’ or ‘fort’" value={q} onChange={(e) => set({ q: e.target.value })} aria-label="Filter curated guides" />
         <select value={len} onChange={(e) => set({ len: e.target.value as typeof len })} aria-label="Trip length">
@@ -60,6 +61,14 @@ export function Explore() {
       </div>
       <div className="grid auto" style={{ marginTop: 20 }}>
         {list.length ? list.map((d) => <DestCard key={d.id} d={d} />) : <div className="empty">No destinations match. Try another mood or clear the search.</div>}
+      </div>
+      <h2 style={{ marginTop: 32 }}>More places across India</h2>
+      <p className="muted small" style={{ marginTop: 6 }}>Guides built live from Google Maps (places, ratings, hotels), OpenStreetMap (areas) and Open-Meteo (best months). Or search any other place above.</p>
+      <div className="grid auto" style={{ marginTop: 14 }}>
+        {(() => {
+          const more = POPULAR.filter((p) => (!mood || p.moods.includes(mood)) && (!q || (p.name + p.state + p.tag).toLowerCase().includes(q.toLowerCase())));
+          return more.length ? more.map((p) => <PopularCard key={p.name} p={p} />) : <div className="empty">No more places match this mood.</div>;
+        })()}
       </div>
       {cmp.length > 0 && (
         <div className="noprint" style={{ position: 'sticky', bottom: 16, marginTop: 20, display: 'flex', justifyContent: 'center' }}>

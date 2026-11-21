@@ -38,6 +38,10 @@ export async function mockApi(page: Page, opts: MockOptions = {}) {
       return json(route, { places: list.map(mapPlace) });
     }
     if (p === '/api/places/photo') return json(route, { uri: null });
+    if (p === '/api/places/cover') {
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      return json(route, { id: q.startsWith('jodhpur') ? 'ChIJTESTjodhpur0000000001' : null, uri: null, author: null });
+    }
     if (p === '/api/places/nearby') {
       const b = route.request().postDataJSON() as { layer: string; center: { lat: number; lng: number } };
       const list = (b.layer === 'cafes' ? googleSearch.cafes : b.layer === 'restaurants' ? googleSearch.restaurants : { places: [] }).places as GPlace[];

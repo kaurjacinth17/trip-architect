@@ -15,8 +15,9 @@ import { fmtDist, km } from '../../engine/geo';
 import { addLiveToDay, MEALS, stayFromLive, type MealKind } from '../../engine/livePool';
 import { applyFilters, badgesFor, mergeResults, sortPlaces, type GuidePlace, type SortKey } from '../../engine/placeFilters';
 import { categorise, isLodging } from '../../engine/placeTypes';
-import { dayCentre, isAct, startFor, travellers } from '../../engine/schedule';
-import { defaultNights, priceLinks, roomsFor, setStayNights, stayDates } from '../../engine/stays';
+import { dayCentre, isAct, itemFromPlace, startFor, travellers } from '../../engine/schedule';
+import { defaultNights, setStayNights } from '../../engine/stays';
+import { HotelLive } from '../trip/HotelFinder';
 import { dayDate, fmtD, fmtT, fromHHMM, toHHMM } from '../../engine/time';
 import type { DestRecord, Trip } from '../../engine/types';
 import { inr } from '../../engine/util';
@@ -90,8 +91,47 @@ function Guide({ v, record }: { v: DestView; record?: DestRecord }) {
           <p>{v.curated ? `The hand-written ${v.name} guide is always available.` : 'Saved places in your trips still work.'} {v.curated && <Link to={`/destinations/${v.key}`}>Open the guide</Link>}</p>
         </div>
       )}
-      {tab === 'areas' ? <AreasTab v={v} trip={trip} onGo={(t, area) => set({ tab: t, inArea: area })} /> : <PlacesTab key={tab + (state.inArea || '')} v={v} record={record} trip={trip} state={state} set={set} />}
+      {tab === 'areas' ? <AreasTab v={v} trip={trip} onGo={(t, area) => set({ tab: t, inArea: area })} />
+        : live !== 'live' && v.curated ? <CuratedTab v={v} tab={tab} trip={trip} />
+        : <PlacesTab key={tab + (state.inArea || '')} v={v} record={record} trip={trip} state={state} set={set} />}
     </>
+  );
+}
+
+/* ---------------------------------------------------------------------- hand-written fallback (no live data) */
+
+const CURATED_CATS: Record<string, string[]> = {
+  famous: ['heritage', 'sight', 'spiritual'], todo: ['nature', 'activity', 'sight'], restaurants: ['food'], cafes: ['cafe'], shopping: ['shop'], nightlife: ['night'],
+};
+
+/** The hand-written guide's places for this tab, so the City Guide is never empty for the eight curated cities. */
+function CuratedTab({ v, tab, trip }: { v: DestView; tab: GuideTab; trip: Trip | null }) {
+  const d = v.curated!;
+  if (tab === 'hotels') {
+    return (
+      <div className="card" style={{ marginTop: 12 }}>
+        <h3>Where to stay in {d.name}</h3>
+        <ul className="xlist">{d.areas.map((a) => <li key={a[0]} className="xrow"><span><b>{a[0]}</b><br /><span className="small muted">{a[1]}</span></span></li>)}</ul>
+        <p className="tiny muted">Hotel names, ratings and websites come from Google when live data is available.</p>
+      </div>
+    );
+  }
+  const cats = CURATED_CATS[tab] || [];
+  const list = d.pl.filter((p) => cats.includes(p.cat)).sort((a, b) => Number(b.must) - Number(a.must));
+  return (
+    <div className="grid" style={{ gap: 8, marginTop: 12 }}>
+      {!list.length && <p className="small muted">Nothing in the hand-written guide for this tab.</p>}
+      {list.map((p) => (
+        <article key={p.pid} className="li pcard">
+          <div>
+            <div className="nm">{p.n} {p.must && <span className="tag t">Must-see</span>} {p.hidden && <span className="tag f">Hidden gem</span>}</div>
+            <div className="mt">{CATS[p.cat][0]} · {p.area} · about {p.d >= 60 ? `${Math.round(p.d / 6) / 10} h` : `${p.d} min`}{p.c ? ` · ₹${p.c.toLocaleString('en-IN')} pp` : ' · free'}{p.best !== 'any' ? ` · best ${p.best === 'am' ? 'in the morning' : p.best === 'pm' ? 'in the afternoon' : 'in the evening'}` : ''}</div>
+            <p className="small" style={{ margin: '4px 0 0' }}>{p.desc}</p>
+          </div>
+          {trip && <button type="button" className="btn sm pri" onClick={() => mut(trip.id, (t) => { if (t.wish.some((w) => w.pid === p.pid) || t.plan.some((x) => x.items.some((w) => w.pid === p.pid))) return false; t.wish.push(itemFromPlace(p)); if (!t.dests.includes(d.id)) t.dests.push(d.id); }, `Saved ${p.n} to the wishlist`, true)}>♡ Save</button>}
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -390,12 +430,7 @@ function CompareHotels({ v, trip, hotels, onClose, onStay }: { v: DestView; trip
     ['Airport', (p) => nearest(p, tq.data?.airports)],
     ['Your price per night', (p) => { const s = saved(p); return s?.price ? inr(s.price) : s ? 'Not entered yet' : 'Not saved yet'; }],
     ['Your notes', (p) => saved(p)?.notes || '—'],
-    ['Check prices', (p) => {
-      const s = saved(p);
-      const dates = trip && s ? stayDates(trip, s) : null;
-      const n = trip ? travellers(trip) : 2;
-      return <span className="grid" style={{ gap: 2 }}>{priceLinks({ hotel: p.name, city: v.name, checkin: dates?.checkin, checkout: dates?.checkout, adults: n, rooms: trip ? roomsFor(trip, s) : 1 }).map((l) => <a key={l.site} className="tiny" href={l.url} target="_blank" rel="noopener noreferrer">{l.site}</a>)}</span>;
-    }],
+    ['Website', (p) => <HotelLive gid={p.id}>{(d) => (d ? <span className="grid" style={{ gap: 2 }}>{d.website ? <a className="tiny" href={d.website} target="_blank" rel="noopener noreferrer">Hotel website</a> : <span className="tiny muted">No website listed</span>}{d.maps && <a className="tiny" href={d.maps} target="_blank" rel="noopener noreferrer">Google Maps</a>}</span> : <span className="tiny muted">Loading…</span>)}</HotelLive>],
   ];
   return (
     <Modal title="Compare hotels" onClose={onClose} wide>
@@ -409,7 +444,7 @@ function CompareHotels({ v, trip, hotels, onClose, onStay }: { v: DestView; trip
           </tbody>
         </table>
       </div>
-      <p className="tiny muted">Ratings and reviews from Google Maps. Distances are straight-line. No live room prices exist here: use Check prices, then type what you find in the Stays tab.</p>
+      <p className="tiny muted">Ratings and reviews from Google Maps. Distances are straight-line. Room prices aren’t published on Google: type the price you’re quoted in the Stays tab.</p>
       <div className="row"><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
     </Modal>
   );
@@ -445,7 +480,7 @@ function GooglePhoto({ ph, alt }: { ph: PlacePhoto; alt: string }) {
   );
 }
 
-function DetailDrawer({ p, tab, badges, trip, onClose, onVeg, onAction }: { p: GuidePlace; tab: GuideTab; badges: { mustSee: boolean; hiddenGem: boolean; editorsPick: boolean }; trip: Trip | null; onClose: () => void; onVeg: (id: string, v: boolean | undefined) => void; onAction: (meal?: MealKind) => void }) {
+export function DetailDrawer({ p, tab, badges, trip, onClose, onVeg, onAction }: { p: GuidePlace; tab: GuideTab; badges: { mustSee: boolean; hiddenGem: boolean; editorsPick: boolean }; trip: Trip | null; onClose: () => void; onVeg: (id: string, v: boolean | undefined) => void; onAction: (meal?: MealKind) => void }) {
   const food = isFoodTab(tab);
   const q = usePlaceDetails(p.id, food);
   const d = q.data;

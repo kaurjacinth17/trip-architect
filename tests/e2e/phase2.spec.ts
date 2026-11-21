@@ -33,7 +33,7 @@ test('plan a trip to any destination: live starter plan with names shown but not
   await page.goto('/new');
   await page.getByRole('combobox', { name: /search anywhere/ }).fill('Jodh');
   await page.getByRole('option', { name: /Jodhpur/ }).click();
-  await expect(page.getByRole('list', { name: 'Your route' })).toContainText('Jodhpur');
+  await expect(page.getByText('Going to Jodhpur')).toBeVisible();
   for (let i = 0; i < 5; i++) await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Create my trip' }).click();
   await expect(page).toHaveURL(/\/itinerary$/);
@@ -73,7 +73,7 @@ test('a custom place with a dropped pin works without Google', async ({ page }) 
   await dlg.getByLabel('Longitude').fill('78.44');
   await dlg.getByLabel('Kind of place').selectOption('hill');
   await dlg.getByRole('button', { name: 'Add place' }).click();
-  await expect(page.getByRole('list', { name: 'Your route' })).toContainText('Chitkul');
+  await expect(page.getByText('Going to Chitkul')).toBeVisible();
 });
 
 test('when the daily quota is used up: banner, curated search still works, planning still works', async ({ page }) => {

@@ -136,3 +136,16 @@ export function useRates(enabled: boolean) {
 
 /** Google place IDs used anywhere in a trip. */
 export const tripGids = (t: Trip) => [...new Set([...t.plan.flatMap((d) => d.items), ...t.wish, ...t.stays].map((x) => x.gid).filter(Boolean) as string[])];
+
+export interface Cover { id: string | null; uri: string | null; author: { name: string; uri: string | null } | null; mapsUri?: string | null }
+/** A destination's Google place ID and one photo (edge-cached server-side; held in memory here). */
+export function useCover(q: string | null, enabled = true) {
+  const live = useLiveStatus((s) => s.state === 'live');
+  return useQuery({
+    queryKey: ['cover', q],
+    enabled: !!q && enabled && live,
+    queryFn: ({ signal }) => apiGet<Cover>(`/api/places/cover?q=${encodeURIComponent(q!)}`, signal),
+    staleTime: 6 * 3600_000,
+    retry: false,
+  });
+}

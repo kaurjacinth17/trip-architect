@@ -31,8 +31,9 @@ test('Jodhpur: Hotels 4.5+ in one area → compare 2 → set one as the stay for
   await expect(cmp.getByRole('row', { name: /Railway station/ })).toContainText('Junction station (fixture)');
   await expect(cmp.getByRole('row', { name: /Airport/ })).toContainText('Airport (fixture)');
   await expect(cmp.getByRole('row', { name: /Your price per night/ })).toContainText('Not saved yet');
-  const booking = cmp.getByRole('row', { name: /Check prices/ }).getByRole('link', { name: 'Booking.com' }).first();
-  expect(await booking.getAttribute('href')).toContain('ss=Haveli+Alpha+%28fixture%29%2C+Jodhpur');
+  // the hotel's own website (from Google), not booking sites
+  await expect(cmp.getByRole('row', { name: /Website/ })).toContainText(/Hotel website|No website listed/);
+  await expect(cmp.getByRole('link', { name: 'Booking.com' })).toHaveCount(0);
   await cmp.getByRole('button', { name: 'Set Haveli Alpha (fixture) as my stay' }).click();
 
   const dlg = page.getByRole('dialog', { name: /as my stay/ });
@@ -57,6 +58,7 @@ test('Jodhpur: Hotels 4.5+ in one area → compare 2 → set one as the stay for
   await page.goto('/trips/sample-jaipur/stays');
   await expect(page.getByText('Nights 1–3')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Use in budget' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Check prices' })).toHaveCount(0);
   await page.getByRole('spinbutton', { name: 'Price per night for Haveli Alpha (fixture)' }).fill('4200');
   await page.getByRole('spinbutton', { name: 'Price per night for Haveli Alpha (fixture)' }).press('Enter');
   await page.goto('/trips/sample-jaipur/budget');

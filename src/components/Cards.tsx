@@ -8,6 +8,12 @@ import type { Dest, Fix, Trip, Warning } from '../engine/types';
 import { inr, plural } from '../engine/util';
 import { useTrips } from '../store/trips';
 import { Scene } from './Scene';
+import { D } from '../data/destinations';
+import { CoverPhoto, useVisible } from './CoverPhoto';
+import { useCover } from '../lib/live';
+import { MOODS } from '../data/constants';
+import type { PopularDest } from '../data/popular';
+import { toast } from '../store/toast';
 
 export function useCompareToggle() {
   const cmp = useTrips((s) => s.compare.cmp);
@@ -33,7 +39,7 @@ export function DestCard({ d }: { d: Dest }) {
   const inCmp = cmp.includes(d.id);
   return (
     <article className="card dcard" onClick={(e) => { if (!(e.target as HTMLElement).closest('a,button')) nav(`/destinations/${d.id}`); }}>
-      <div className="art"><Scene d={d} h={150} /></div>
+      <div className="art"><CoverPhoto q={`${d.name}, ${d.state}, India`} alt={`${d.name}, ${d.state}`} height={150} fallback={<Scene d={d} h={150} />} /></div>
       <div className="bd">
         <div className="row between">
           <h3><Link to={`/destinations/${d.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{d.name}</Link></h3>
@@ -58,12 +64,38 @@ export function DestCard({ d }: { d: Dest }) {
   );
 }
 
+/** A popular destination without a hand-written guide: real photo and live guide from Google. */
+export function PopularCard({ p }: { p: PopularDest }) {
+  const nav = useNavigate();
+  const [ref, vis] = useVisible<HTMLElement>();
+  const c = useCover(p.q, vis);
+  const go = async (sub = '') => {
+    const id = c.data?.id ?? (await c.refetch()).data?.id;
+    if (id) nav(`/destinations/g:${id}${sub}`);
+    else toast('Live place data isn’t available right now; search for it above instead');
+  };
+  return (
+    <article ref={ref} className="card dcard" onClick={(e) => { if (!(e.target as HTMLElement).closest('a,button')) void go(); }}>
+      <div className="art"><CoverPhoto q={p.q} alt={`${p.name}, ${p.state}`} height={150} fallback={<div className="cover-ph" />} /></div>
+      <div className="bd">
+        <div className="row between"><h3>{p.name}</h3><span className="tiny muted">{p.state}</span></div>
+        <p className="small muted">{p.tag}</p>
+        <div className="row" style={{ gap: 4 }}>{p.moods.map((m) => <span key={m} className="tag">{MOODS.find((x) => x[0] === m)?.[1] || m}</span>)}</div>
+        <div className="row">
+          <button type="button" className="btn sm" onClick={() => void go()}>Details and plan</button>
+          <button type="button" className="btn sm" onClick={() => void go('/guide')}>City Guide</button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function TripCard({ t }: { t: Trip }) {
   const r = readiness(t);
   const d = sceneFor(t, t.dests[0]);
   return (
     <Link className="card dcard" to={`/trips/${t.id}/overview`} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div className="art" style={{ height: 110 }}>{d && <Scene d={d} h={140} />}</div>
+      <div className="art" style={{ height: 110 }}><CoverPhoto q={`${d?.name || t.name}${t.destRecords?.[t.dests[0]]?.region ? ', ' + t.destRecords[t.dests[0]].region : D[t.dests[0]] ? ', ' + D[t.dests[0]].state : ''}, India`} alt={t.name} height={110} fallback={d ? <Scene d={d} h={140} /> : <div className="cover-ph" />} /></div>
       <div className="bd">
         <div className="row between"><h3>{t.name}</h3>{t.sample && <span className="tag">Sample</span>}</div>
         <span className="small muted">{t.start ? fmtD(dayDate(t, 0)) + ' · ' : ''}{plural(t.plan.length, 'day')} · {plural(travellers(t), 'traveller')}</span>

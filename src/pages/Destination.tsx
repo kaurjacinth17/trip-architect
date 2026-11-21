@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useCompareToggle } from '../components/Cards';
 import { Modal } from '../components/Modal';
 import { Scene } from '../components/Scene';
+import { CoverPhoto } from '../components/CoverPhoto';
 import { Missing } from '../components/Shell';
 import { BEST, CATS, MONTHS, WDL } from '../data/constants';
 import { D, PL } from '../data/destinations';
@@ -124,7 +125,7 @@ function CuratedDestination({ id }: { id: string }) {
             <button type="button" className="btn" aria-pressed={cmp.includes(d.id)} onClick={() => toggle(d.id)}>{cmp.includes(d.id) ? 'In comparison' : 'Add to compare'}</button>
           </div>
         </div>
-        <div className="art"><Scene d={d} h={320} /></div>
+        <div className="art"><CoverPhoto q={`${d.name}, ${d.state}, India`} alt={`${d.name}, ${d.state}`} height={320} fallback={<Scene d={d} h={320} />} /></div>
       </section>
 
       <div className="grid g2 sec">

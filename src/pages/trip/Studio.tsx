@@ -33,6 +33,8 @@ import { isOpenAt } from '../../engine/hours';
 import type { CheckCtx } from '../../engine/checks';
 import type { OpenTest } from '../../engine/schedule';
 import { changeDays } from './Overview';
+import { dayEndpoint } from '../../engine/stays';
+import { StayPrompt } from './StayPrompt';
 import { CommentsButton, useEditingBy, VoteButtons } from '../../components/cloud/Social';
 import type { TabProps } from './TripPage';
 
@@ -338,6 +340,7 @@ function DayMain({ t, A, di, ind, drag, ctx, onEdit, onAddCustom }: {
 
   return (
     <div>
+      <StayPrompt t={t} di={di} />
       <div className="dayhead">
         <div className="row between" style={{ alignItems: 'center' }}>
           <h2 className="kicker" style={{ fontFamily: 'var(--sans)', fontSize: 14, fontWeight: 700 }}>Day {di + 1}{date ? ' · ' + fmtD(date) : ''}</h2>
@@ -356,8 +359,9 @@ function DayMain({ t, A, di, ind, drag, ctx, onEdit, onAddCustom }: {
           </select>
           <button type="button" className="btn sm" title="Remove gaps and add travel buffers" onClick={() => action((tt) => { const d = tt.plan[di]; if (!d.items.length) return false; tidy(d, d.start); }, 'Times tidied')}>Tidy times</button>
           <button type="button" className="btn sm" title="Reorder by distance" onClick={() => {
-            if (dayStats(day).it.filter(geo).length < 3) { toast('Needs at least three mapped places'); return; }
-            action((tt) => { if (!routeOrder(tt.plan[di], openTest)) return false; }, openTest ? 'Reordered by distance and opening hours' : 'Reordered by distance');
+            if (dayStats(day).it.filter(geo).length < (dayEndpoint(t, di, 'start') ? 2 : 3)) { toast('Needs at least three mapped places'); return; }
+            const home = dayEndpoint(t, di, 'start');
+            action((tt) => { if (!routeOrder(tt.plan[di], openTest, { start: home })) return false; }, home ? `Reordered starting from ${home.label}` : openTest ? 'Reordered by distance and opening hours' : 'Reordered by distance');
           }}>Optimise route</button>
           <button type="button" className={'btn sm' + (selectMode ? ' pri' : '')} aria-pressed={selectMode} onClick={() => set({ selectMode: !selectMode, selected: [] })}>{selectMode ? 'Done selecting' : 'Select'}</button>
           <label className="row small" style={{ gap: 6, fontWeight: 600 }} title="Uses Google Routes for this day’s legs (not stored)"><input type="checkbox" checked={liveTravel} onChange={(e) => set({ liveTravel: e.target.checked })} />Live travel times</label>

@@ -183,20 +183,20 @@ test('share link round trip opens a read-only copy that can be saved', async ({ 
   await expect(other).toHaveURL(/\/trips\/[^/]+\/overview$/);
 });
 
-test('wizard builds a two-stop trip and persists it after an edit', async ({ page }) => {
+test('wizard builds a one-destination trip (picking another replaces it) and persists it after an edit', async ({ page }) => {
   await offline(page);
   await page.goto('/new');
-  await page.getByRole('button', { name: /^Jaipur/ }).click();
   await page.getByRole('button', { name: /^Udaipur/ }).click();
+  await page.getByRole('button', { name: /^Jaipur/ }).click();
+  await expect(page.getByRole('button', { name: /^Udaipur/ })).toHaveAttribute('aria-pressed', 'false');
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Start date').fill('2026-12-16');
-  await expect(page.getByText('Recommended for this route: 6–8 days.')).toBeVisible();
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Trip name').fill('Rajasthan loop');
   await page.getByRole('button', { name: 'Create my trip' }).click();
   await expect(page).toHaveURL(/\/trips\/[^/]+\/itinerary$/);
-  await page.getByRole('button', { name: /^Day 4/ }).click();
-  await expect(page.locator('.tl .bt').first()).toHaveText('Travel to Udaipur');
+  await page.getByRole('button', { name: /^Day 1/ }).first().click();
+  await expect(page.locator('.tl .bt').first()).toHaveText('Arrive and check in');
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Rajasthan loop');
 });

@@ -4,11 +4,12 @@ import { destName, destView } from '../../engine/dest';
 import { useAreas } from '../../lib/live';
 import type { Trip } from '../../engine/types';
 import { km } from '../../engine/geo';
-import { isAct, travellers } from '../../engine/schedule';
-import { clearStayNights, defaultNights, hasRange, priceLinks, removeStay, roomsFor, setStayNights, stayDates } from '../../engine/stays';
+import { isAct } from '../../engine/schedule';
+import { clearStayNights, defaultNights, hasRange, removeStay, roomsFor, setStayNights, stayDates } from '../../engine/stays';
 import type { Item, LatLng, Stay, StayStatus } from '../../engine/types';
 import { CommitInput } from '../../components/Inputs';
 import { StayNightsDialog } from '../../components/StayNightsDialog';
+import { HotelFinder, HotelLive } from './HotelFinder';
 import { inr, plural, sum, uid } from '../../engine/util';
 import { mut } from '../../lib/actions';
 import { toast } from '../../store/toast';
@@ -28,7 +29,6 @@ export function Stays({ t }: TabProps) {
   const blank = { name: '', area: areaOpts[0]?.[0] || '', price: '', nights: String(Math.max(1, t.plan.length - 1)), checkin: t.start, checkout: '', rating: '', link: '', notes: '' };
   const [f, setF] = useState(blank);
   const [nightsFor, setNightsFor] = useState<Stay | null>(null);
-  const [pricesFor, setPricesFor] = useState<string | null>(null);
   const upd = (p: Partial<typeof f>) => setF({ ...f, ...p });
 
   const addStay = () => {
@@ -76,11 +76,11 @@ export function Stays({ t }: TabProps) {
 
       <section className="sec">
         <h2>Saved stays</h2>
-        <p className="tiny muted" style={{ marginTop: 6 }}>Trip Architect doesn’t show live room prices. Use <b>Check prices</b> to search booking sites for your dates, then type the price you find. The Stay line in your budget follows these automatically: booked stays first, then your stay for each night, then the cheapest shortlisted option.</p>
+        <p className="tiny muted" style={{ marginTop: 6 }}>Ratings, reviews and websites come live from Google. Room prices aren’t published there, so type the price you’re quoted; the Stay line in your budget follows automatically (booked stays first, then your stay for each night, then the cheapest shortlisted option).</p>
         {t.stays.length ? (
           <div className="scroll" style={{ marginTop: 12 }}>
             <table className="stack">
-              <thead><tr><th>Stay</th><th>Nights</th><th className="n">Your price per night</th><th className="n">Rooms</th><th className="n">Total</th><th className="n">To your plans</th><th className="n">Your rating</th><th>Status</th><th><span className="vh">Actions</span></th></tr></thead>
+              <thead><tr><th>Stay</th><th>Nights</th><th className="n">Your price per night</th><th className="n">Rooms</th><th className="n">Total</th><th className="n">To your plans</th><th className="n">Google rating</th><th>Status</th><th><span className="vh">Actions</span></th></tr></thead>
               <tbody>
                 {t.stays.map((s) => {
                   const v = avg(s, s.dest);
@@ -90,7 +90,9 @@ export function Stays({ t }: TabProps) {
                     <tr key={s.id}>
                       <td>
                         <b>{s.name}</b>{s.area && <span className="tiny muted"> · {s.area}</span>}
-                        {s.link && <><br /><a className="small" href={s.link} target="_blank" rel="noopener noreferrer">Booking link</a></>}
+                        {s.gid ? (
+                          <HotelLive gid={s.gid}>{(d) => d && (d.website || d.maps) ? <><br />{d.website && <a className="small" href={d.website} target="_blank" rel="noopener noreferrer">Hotel website</a>}{d.website && d.maps && ' · '}{d.maps && <a className="small" href={d.maps} target="_blank" rel="noopener noreferrer">Google Maps</a>}</> : null}</HotelLive>
+                        ) : s.link ? <><br /><a className="small" href={s.link} target="_blank" rel="noopener noreferrer">Website</a></> : null}
                         {s.notes && <><br /><span className="tiny muted">{s.notes}</span></>}
                       </td>
                       <td>
@@ -102,14 +104,6 @@ export function Stays({ t }: TabProps) {
                       <td className="n">
                         <CommitInput type="number" min={0} step={100} value={s.price || ''} placeholder="Type price" style={{ maxWidth: 120, textAlign: 'right' }} aria-label={`Price per night for ${s.name}`}
                           onCommit={(val) => mut(t.id, (tt) => { const x = tt.stays.find((y) => y.id === s.id); if (!x) return false; x.price = Math.max(0, +val || 0); })} />
-                        <br /><button type="button" className="linkish tiny" aria-expanded={pricesFor === s.id} onClick={() => setPricesFor(pricesFor === s.id ? null : s.id)}>Check prices</button>
-                        {pricesFor === s.id && (
-                          <ul className="tiny plinks">
-                            {priceLinks({ hotel: s.name, city: destName(t, s.dest), checkin: dates?.checkin, checkout: dates?.checkout, adults: travellers(t), rooms: rm }).map((l) => (
-                              <li key={l.site}><a href={l.url} target="_blank" rel="noopener noreferrer">{l.site}</a></li>
-                            ))}
-                          </ul>
-                        )}
                       </td>
                       <td className="n">
                         <CommitInput type="number" min={1} max={20} value={rm} style={{ maxWidth: 64, textAlign: 'right' }} aria-label={`Rooms at ${s.name}`}
@@ -117,7 +111,7 @@ export function Stays({ t }: TabProps) {
                       </td>
                       <td className="n"><b>{s.price ? inr(s.price * s.nights * rm) : '—'}</b></td>
                       <td className="n">{v != null ? v.toFixed(1) + ' km' : '—'}</td>
-                      <td className="n">{s.rating ? s.rating + '/5' : '—'}</td>
+                      <td className="n">{s.gid ? <HotelLive gid={s.gid}>{(d) => (d?.rating != null ? <span title="Google rating">★ {d.rating.toFixed(1)}<br /><span className="tiny muted">{(d.reviews || 0).toLocaleString('en-IN')} reviews</span></span> : '—')}</HotelLive> : s.rating ? `${s.rating}/5 (yours)` : '—'}</td>
                       <td>
                         <select value={s.status} aria-label={`Booking status for ${s.name}`} style={{ minWidth: 130 }} onChange={(e) => mut(t.id, (tt) => { const x = tt.stays.find((y) => y.id === s.id); if (!x) return false; x.status = e.target.value as StayStatus; })}>
                           {(['idea', 'shortlisted', 'booked'] as const).map((x) => <option key={x} value={x}>{x[0].toUpperCase() + x.slice(1)}</option>)}
@@ -137,8 +131,10 @@ export function Stays({ t }: TabProps) {
         ) : <p className="small muted" style={{ marginTop: 10 }}>No stays saved yet.</p>}
       </section>
 
-      <form className="sec card grid" style={{ gap: 12 }} onSubmit={(e) => { e.preventDefault(); addStay(); }}>
-        <h3>Add a stay you’re considering</h3>
+      <HotelFinder t={t} />
+      <details className="sec card">
+      <summary><b>Add a stay by hand</b> <span className="small muted">(homestays and places not on Google Maps)</span></summary>
+      <form className="grid" style={{ gap: 12, marginTop: 10 }} onSubmit={(e) => { e.preventDefault(); addStay(); }}>
         <div className="grid g3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))' }}>
           <label className="f">Name<input type="text" placeholder="Hotel or homestay" value={f.name} onChange={(e) => upd({ name: e.target.value })} /></label>
           <label className="f">Area<select value={f.area} onChange={(e) => upd({ area: e.target.value })}>{areaOpts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
@@ -146,12 +142,12 @@ export function Stays({ t }: TabProps) {
           <label className="f">Nights<input type="number" min={1} value={f.nights} onChange={(e) => upd({ nights: e.target.value })} /></label>
           <label className="f">Check-in<input type="date" value={f.checkin} onChange={(e) => upd({ checkin: e.target.value })} /></label>
           <label className="f">Check-out<input type="date" value={f.checkout} onChange={(e) => upd({ checkout: e.target.value })} /></label>
-          <label className="f">Your rating (1–5)<input type="number" min={1} max={5} step={0.5} value={f.rating} onChange={(e) => upd({ rating: e.target.value })} /></label>
-          <label className="f">Booking link<input type="url" placeholder="https://" value={f.link} onChange={(e) => upd({ link: e.target.value })} /></label>
+          <label className="f">Website (optional)<input type="url" placeholder="https://" value={f.link} onChange={(e) => upd({ link: e.target.value })} /></label>
         </div>
         <label className="f">Notes<input type="text" placeholder="Breakfast included, free cancellation till…" value={f.notes} onChange={(e) => upd({ notes: e.target.value })} /></label>
         <div><button type="submit" className="btn pri">Save stay</button></div>
       </form>
+      </details>
       {nightsFor && (
         <StayNightsDialog t={t} hotel={nightsFor.name} initial={hasRange(nightsFor) ? [nightsFor.from, nightsFor.to] : defaultNights(t, nightsFor.dest)} onClose={() => setNightsFor(null)}
           onApply={(a, b) => mut(t.id, (tt) => { setStayNights(tt, nightsFor.id, a, b); }, `Nights ${a + 1}–${b + 1} set; check-in and check-out are in the itinerary`, true)} />

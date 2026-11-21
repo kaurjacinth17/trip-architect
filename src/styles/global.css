@@ -329,3 +329,17 @@ button.tag.linkish{border:0;cursor:pointer}
 .pav img{width:100%;height:100%;object-fit:cover}
 .presence{flex-wrap:wrap}
 .votes .btn[aria-pressed="true"]{background:var(--sand)}
+
+/* Real destination photos */
+.cover{position:relative;overflow:hidden;background:var(--sand)}
+.cover-fb{position:absolute;inset:0}
+.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .3s}
+.cover .credit{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.55);color:#fff;padding:2px 6px;border-radius:6px;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cover .credit a{color:#fff}
+@media (prefers-reduced-motion:reduce){.cover img{transition:none}}
+.cover-ph{position:absolute;inset:0;background:linear-gradient(135deg,var(--sand),#e9d8bd)}
+.ovmap{border-radius:12px;overflow:hidden;border:1px solid var(--line);margin-top:10px;z-index:0;position:relative}
+.ov-home{font-size:20px;line-height:24px;text-align:center}
+.li.clickable{cursor:pointer}
+.li.clickable:hover,.li.clickable:focus-visible{background:var(--sand)}
+.stayprompt{margin-bottom:10px}

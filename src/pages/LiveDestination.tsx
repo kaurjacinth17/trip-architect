@@ -7,6 +7,7 @@ import { BestMonthsChart } from '../components/BestMonthsChart';
 import { InsertDestDialog } from '../components/InsertDestDialog';
 import { Modal } from '../components/Modal';
 import { Scene } from '../components/Scene';
+import { CoverPhoto } from '../components/CoverPhoto';
 import { Missing } from '../components/Shell';
 import { COST_BASIS, DEST_TYPE_LABEL } from '../data/costTables';
 import { D } from '../data/destinations';
@@ -151,7 +152,7 @@ export default function LiveDestination({ destKey }: { destKey: string }) {
             {rec.placeId && <a className="btn" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.name)}&query_place_id=${rec.placeId}`} target="_blank" rel="noopener noreferrer">Open in Google Maps</a>}
           </div>
         </div>
-        <div className="art">{sceneOf && <Scene d={{ scene: sceneOf.scene, name: v.name }} h={320} />}</div>
+        <div className="art"><CoverPhoto q={[v.name, v.region, v.country].filter(Boolean).join(', ')} alt={v.name} height={320} fallback={sceneOf ? <Scene d={{ scene: sceneOf.scene, name: v.name }} h={320} /> : <div className="cover-ph" />} /></div>
       </section>
 
       <div className="grid g2 sec">

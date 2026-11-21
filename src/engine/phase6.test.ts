@@ -201,3 +201,18 @@ describe('migration v3 and portability', () => {
     expect(decodeShare(encodeShare(t)).stays[0].from).toBe(1);
   });
 });
+
+describe('Optimise route from the hotel', () => {
+  it('starts with the stop nearest the hotel and leaves the hotel out of the day', async () => {
+    const { routeOrder } = await import('./schedule');
+    const { customItem } = await import('./schedule');
+    const far = customItem({ t: 'Far', s: 540, d: 60, lat: 26.99, lng: 75.85 });
+    const near = customItem({ t: 'Near', s: 660, d: 60, lat: 26.921, lng: 75.821 });
+    const mid = customItem({ t: 'Mid', s: 780, d: 60, lat: 26.95, lng: 75.83 });
+    const day = { dest: 'jaipur', label: '', items: [far, near, mid] };
+    expect(routeOrder(day, undefined, { start: { lat: 26.92, lng: 75.82 } })).toBe(true);
+    expect(day.items.map((x) => x.t)).toEqual(['Near', 'Mid', 'Far']);
+    expect(day.items).toHaveLength(3);
+    expect(day.items[0].s).toBeGreaterThanOrEqual(540);
+  });
+});

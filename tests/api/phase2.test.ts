@@ -61,6 +61,7 @@ describe('field masks (every change here changes the Google bill)', () => {
     expect(MASKS).toMatchInlineSnapshot(`
       {
         "autocomplete": "suggestions.placePrediction.placeId,suggestions.placePrediction.structuredFormat,suggestions.placePrediction.types",
+        "cover": "places.id,places.photos",
         "destination": "id,displayName,location,viewport,types,primaryType,addressComponents,timeZone,googleMapsUri",
         "details": "id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus",
         "detailsFood": "id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus,servesVegetarianFood,editorialSummary",

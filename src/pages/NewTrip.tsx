@@ -55,18 +55,8 @@ export function NewTrip() {
   const setDests = (dests: string[], records = w.records) =>
     upd({ dests, records, days: dests.length ? Math.max(w.days, Math.min(14, sum(dests, (x) => destView({ destRecords: records }, x)?.days[0] ?? 2))) : w.days });
   const toggleDest = (id: string) => {
-    const dests = [...w.dests];
-    const i = dests.indexOf(id);
-    if (i >= 0) dests.splice(i, 1);
-    else dests.push(id);
-    setDests(dests);
-  };
-  const moveStop = (i: number, d: number) => {
-    const j = i + d;
-    if (j < 0 || j >= w.dests.length) return;
-    const dests = [...w.dests];
-    [dests[i], dests[j]] = [dests[j], dests[i]];
-    upd({ dests });
+    // One destination per new trip (more can be added later from the trip's Overview)
+    setDests(w.dests[0] === id ? [] : [id]);
   };
 
   const create = async () => {
@@ -98,13 +88,13 @@ export function NewTrip() {
   if (st === 1) {
     body = (
       <>
-        <p className="muted">Pick one destination, or a few for a multi-stop trip. Order matters: you’ll travel in the order you pick.</p>
+        <p className="muted">Pick where you’re going. Planning a route with more places? Add them later from the trip’s Overview.</p>
         <div className="grid auto" style={{ marginTop: 16 }}>
           {DESTS.map((d) => {
             const i = w.dests.indexOf(d.id);
             return (
               <button type="button" key={d.id} className={'opt' + (i >= 0 ? ' on' : '')} aria-pressed={i >= 0} onClick={() => toggleDest(d.id)}>
-                <span className="row between"><b>{d.name}</b>{i >= 0 && <span className="tag f">Stop {i + 1}</span>}</span>
+                <span className="row between"><b>{d.name}</b>{i >= 0 && <span className="tag f">Selected</span>}</span>
                 <span className="small muted">{d.tag}</span>
                 <span className="tiny muted">{d.days[0]}–{d.days[1]} days · {d.bestFor}</span>
               </button>
@@ -113,22 +103,9 @@ export function NewTrip() {
         </div>
         <div className="card" style={{ marginTop: 18 }}>
           <DestinationSearch label="Or search anywhere: any city, town, hill station, island, region or park" exclude={w.dests}
-            onPick={(d) => setDests([...w.dests, d.key], d.record ? { ...w.records, [d.key]: d.record } : w.records)} />
+            onPick={(d) => setDests([d.key], d.record ? { ...w.records, [d.key]: d.record } : w.records)} />
         </div>
-        {w.dests.length > 0 && (
-          <ol className="stops" aria-label="Your route">
-            {w.dests.map((k, i) => (
-              <li key={k}>
-                <span className="tag f">Stop {i + 1}</span> <b>{nameOf(k)}</b>
-                <span className="row" style={{ gap: 2, marginLeft: 'auto' }}>
-                  <button type="button" className="btn sm icon" aria-label={`Move ${nameOf(k)} earlier`} disabled={i === 0} onClick={() => moveStop(i, -1)}>↑</button>
-                  <button type="button" className="btn sm icon" aria-label={`Move ${nameOf(k)} later`} disabled={i === w.dests.length - 1} onClick={() => moveStop(i, 1)}>↓</button>
-                  <button type="button" className="btn sm icon" aria-label={`Remove ${nameOf(k)}`} onClick={() => toggleDest(k)}>×</button>
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
+        {w.dests.length > 0 && !D[w.dests[0]] && <p className="small" style={{ marginTop: 12 }}>Going to <b>{nameOf(w.dests[0])}</b>.</p>}
         <p className="small" style={{ marginTop: 14 }}>Haven’t decided yet? <Link to="/compare">Compare destinations</Link> against what you care about.</p>
       </>
     );
