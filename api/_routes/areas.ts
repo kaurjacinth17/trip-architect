@@ -1,8 +1,8 @@
 // GET /api/areas?name=…&lat=…&lng=…&s=…&w=…&n=…&e=…  Neighbourhoods from OpenStreetMap via Overpass (ODbL).
 // First tries the destination's administrative boundary; falls back to its bounding box. Edge-cached for 7 days.
 import { z } from 'zod';
-import { handler, json } from './_lib/http';
-import { edgeCache, fetchJson } from './_lib/upstream';
+import { handler, json } from '../_lib/http';
+import { edgeCache, fetchJson } from '../_lib/upstream';
 
 const num = (min: number, max: number) => z.coerce.number().min(min).max(max);
 const Q = z.object({ name: z.string().trim().min(1).max(80), lat: num(-90, 90), lng: num(-180, 180), s: num(-90, 90).optional(), w: num(-180, 180).optional(), n: num(-90, 90).optional(), e: num(-180, 180).optional() });

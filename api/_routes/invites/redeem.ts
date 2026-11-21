@@ -1,7 +1,7 @@
 // POST /api/invites/redeem  { token }  Join a trip with an invite link. Checks expiry, revocation and uses.
 import { z } from 'zod';
-import { ApiError, handler, json, readJson } from '../_lib/http';
-import { admin, eq, roleOf, sha256, verifyUser } from '../_lib/supabase';
+import { ApiError, handler, json, readJson } from '../../_lib/http';
+import { admin, eq, roleOf, sha256, verifyUser } from '../../_lib/supabase';
 
 const Body = z.object({ token: z.string().min(20).max(100).regex(/^[A-Za-z0-9_-]+$/) });
 interface Invite { id: string; trip_id: string; role: 'editor' | 'viewer'; expires_at: string; max_uses: number; uses: number; revoked_at: string | null }

@@ -6,8 +6,10 @@ import { googlePlaces } from '../../api/_lib/google';
 import { ApiError, handler, json, readJson } from '../../api/_lib/http';
 import { _resetRateLimit } from '../../api/_lib/ratelimit';
 import { _resetRedis } from '../../api/_lib/redis';
-import { GET as health } from '../../api/health';
-import { resolveApiFile } from '../../scripts/vite-api-dev';
+import { GET as health } from '../../api/_routes/health';
+import fs from 'node:fs';
+import path from 'node:path';
+import { GET as router, POST as routerPost, resolve, ROUTES } from '../../api/router';
 
 const SECRET = 'AIzaTEST-SECRET-KEY-123';
 
@@ -148,11 +150,25 @@ describe('/api/health', () => {
   });
 });
 
-describe('dev API router', () => {
-  it('maps paths to handler files and never exposes _lib', () => {
-    const root = process.cwd();
-    expect(resolveApiFile(root, '/api/health')?.file).toMatch(/api\/health\.ts$/);
-    expect(resolveApiFile(root, '/api/_lib/env')).toBeNull();
-    expect(resolveApiFile(root, '/api/nope')).toBeNull();
+describe('single API router (Vercel Hobby allows 12 functions per deployment)', () => {
+  it('deploys at most 12 functions: only api/router.ts and api/cron/keepalive.ts', () => {
+    const files = (fs.readdirSync('api', { recursive: true }) as string[])
+      .map((f) => f.split(path.sep).join('/'))
+      .filter((f) => f.endsWith('.ts') && !f.split('/').some((s) => s.startsWith('_')));
+    expect(files.sort()).toEqual(['cron/keepalive.ts', 'router.ts']);
+  });
+  it('dispatches /api/<path> (from the rewrite or the URL), place IDs, and never exposes _lib or _routes', async () => {
+    expect(resolve('health')).toBe(ROUTES.health);
+    expect(resolve('places/ChIJTESTplace0000000001')).toBeTruthy();
+    expect(resolve('places/search')).toBe(ROUTES['places/search']);
+    expect(resolve('nope')).toBeNull();
+    const viaRewrite = await router(new Request('http://localhost/api/router?__path=health'));
+    expect(viaRewrite.status).toBe(200);
+    expect((await viaRewrite.json()).ok).toBe(true);
+    expect((await router(new Request('http://localhost/api/health'))).status).toBe(200);
+    expect((await router(new Request('http://localhost/api/router?__path=_lib/env'))).status).toBe(404);
+    expect((await router(new Request('http://localhost/api/router?__path=_routes/health'))).status).toBe(404);
+    expect((await router(new Request('http://localhost/api/router?__path=nope'))).status).toBe(404);
+    expect((await routerPost(new Request('http://localhost/api/router?__path=health', { method: 'POST' }))).status).toBe(405);
   });
 });

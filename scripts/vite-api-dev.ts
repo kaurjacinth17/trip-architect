@@ -1,28 +1,6 @@
-// Development only: serve /api/* from the same handler files Vercel deploys, so `npm run dev` has a working API.
-import fs from 'node:fs';
+// Development only: serve /api/* through the same router function Vercel deploys, so `npm run dev` has a working API.
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-
-/** Resolve /api/a/b to api/a/b.ts, api/a/b/index.ts, or a [param].ts file (param added to the query string). */
-export function resolveApiFile(root: string, pathname: string): { file: string; params: Record<string, string> } | null {
-  const segs = pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean);
-  if (segs.some((s) => s.startsWith('_') || s.startsWith('.'))) return null;
-  let dir = path.join(root, 'api');
-  const params: Record<string, string> = {};
-  for (let i = 0; i < segs.length; i++) {
-    const s = segs[i];
-    const last = i === segs.length - 1;
-    if (last && fs.existsSync(path.join(dir, s + '.ts'))) return { file: path.join(dir, s + '.ts'), params };
-    if (fs.existsSync(path.join(dir, s)) && fs.statSync(path.join(dir, s)).isDirectory()) { dir = path.join(dir, s); continue; }
-    const dyn = fs.readdirSync(dir).find((f) => /^\[[^\]]+\](\.ts)?$/.test(f));
-    if (!dyn) return null;
-    params[dyn.replace(/^\[|\](\.ts)?$/g, '')] = decodeURIComponent(s);
-    if (dyn.endsWith('.ts')) return last ? { file: path.join(dir, dyn), params } : null;
-    dir = path.join(dir, dyn);
-  }
-  const idx = path.join(dir, 'index.ts');
-  return fs.existsSync(idx) ? { file: idx, params } : null;
-}
 
 export function apiDev(env: Record<string, string>): Plugin {
   return {
@@ -33,7 +11,8 @@ export function apiDev(env: Record<string, string>): Plugin {
       server.middlewares.use(async (req, res, next) => {
         if (!req.url?.startsWith('/api/')) return next();
         const url = new URL(req.url, 'http://localhost');
-        const hit = resolveApiFile(server.config.root, url.pathname);
+        // Everything goes through the same single router function Vercel deploys (api/router.ts).
+        const hit = { file: path.join(server.config.root, 'api', 'router.ts'), params: {} as Record<string, string> };
         const send = (status: number, body: string) => { res.statusCode = status; res.setHeader('content-type', 'application/json'); res.end(body); };
         if (!hit) return send(404, JSON.stringify({ error: { code: 'not_found', message: 'No such endpoint' } }));
         for (const [k, v] of Object.entries(hit.params)) url.searchParams.set(k, v);

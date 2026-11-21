@@ -1,8 +1,8 @@
 // Answer the app's /api calls from test fixtures (the Vite preview server has no functions).
 import type { Page, Route } from '@playwright/test';
 import { mapDestination, mapDetails, mapPlace, type GPlace } from '../../api/_lib/places';
-import { monthlyNormals } from '../../api/climate';
-import { mapAreas } from '../../api/areas';
+import { monthlyNormals } from '../../api/_routes/climate';
+import { mapAreas } from '../../api/_routes/areas';
 import { frankfurter, googleAutocomplete, googleDestination, googleSearch, openMeteoArchive, overpass, wikipedia } from '../fixtures/providers';
 
 export interface MockOptions { quota?: boolean; unconfigured?: boolean }

@@ -6,9 +6,9 @@ import { _resetDedupe } from '../../api/_lib/dedupe';
 import { MASKS } from '../../api/_lib/places';
 import { _resetRateLimit } from '../../api/_lib/ratelimit';
 import { _resetRedis } from '../../api/_lib/redis';
-import { GET as details } from '../../api/places/[id]';
-import { GET as photo } from '../../api/places/photo';
-import { POST as search } from '../../api/places/search';
+import { GET as details } from '../../api/_routes/places/[id]';
+import { GET as photo } from '../../api/_routes/places/photo';
+import { POST as search } from '../../api/_routes/places/search';
 import { IDS, googleSearch } from '../fixtures/providers';
 
 const KEY = 'AIzaTEST-server-key-3';

@@ -1,10 +1,10 @@
 // GET /api/places/:id[?food=1]  Details for the drawer, fetched only when a place is opened.
 // food=1 (restaurants and cafés) adds veg-friendly and the editorial summary (Enterprise + Atmosphere).
 import { z } from 'zod';
-import { dedupe } from '../_lib/dedupe';
-import { googlePlaces } from '../_lib/google';
-import { handler, json } from '../_lib/http';
-import { MASKS, PlaceIdSchema, mapDetails, type GPlace } from '../_lib/places';
+import { dedupe } from '../../_lib/dedupe';
+import { googlePlaces } from '../../_lib/google';
+import { handler, json } from '../../_lib/http';
+import { MASKS, PlaceIdSchema, mapDetails, type GPlace } from '../../_lib/places';
 
 const Q = z.object({ id: PlaceIdSchema, food: z.enum(['0', '1']).optional() });
 

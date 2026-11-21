@@ -227,3 +227,11 @@ Judgement calls made while implementing the upgrade, so they can be reviewed:
   schema (`npm run test:sql`); API functions with mocked Supabase; Trip ⇄ row mapping, diffing and merging (unit).
   **Not verified here:** a real Supabase project (auth redirects, Realtime delivery, two people editing live). The
   two-browser Playwright test runs only when `E2E_SUPABASE=1` and a configured preview are available.
+
+### Deployment fix: one API function
+
+Vercel's Hobby plan allows 12 functions per deployment; from Phase 4 the site had 14 (20 by Phase 8), so every
+deployment since then failed. All endpoints now live in `api/_routes/` (underscore folders aren't deployed as
+functions) and one function, `api/router.ts`, serves them: `vercel.json` rewrites `/api/<path>` to
+`/api/router?__path=<path>`. The daily cron keeps its own function (`api/cron/keepalive.ts`), so 2 in total. URLs
+are unchanged. A test fails if another deployable file appears in `api/`.

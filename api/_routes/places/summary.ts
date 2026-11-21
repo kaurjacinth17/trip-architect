@@ -1,9 +1,9 @@
 // GET /api/places/summary?id=…  Google's editorial summary, used only when Wikipedia has nothing.
 import { z } from 'zod';
-import { dedupe } from '../_lib/dedupe';
-import { googlePlaces } from '../_lib/google';
-import { handler, json } from '../_lib/http';
-import { MASKS, PlaceIdSchema, type GPlace } from '../_lib/places';
+import { dedupe } from '../../_lib/dedupe';
+import { googlePlaces } from '../../_lib/google';
+import { handler, json } from '../../_lib/http';
+import { MASKS, PlaceIdSchema, type GPlace } from '../../_lib/places';
 
 const Q = z.object({ id: PlaceIdSchema });
 

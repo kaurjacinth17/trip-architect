@@ -4,7 +4,7 @@ import { COST_TABLE } from '../data/costTables';
 import { D } from '../data/destinations';
 import { migrate, upgradeTripV2 } from '../store/trips';
 import { IDS, googleSearch, openMeteoArchive } from '../../tests/fixtures/providers';
-import { monthlyNormals } from '../../api/climate';
+import { monthlyNormals } from '../../api/_routes/climate';
 import { mapPlace, type GPlace } from '../../api/_lib/places';
 import { estBudget } from './budget';
 import { bestMonths, bestTimeText, monthRanges, rateMonth } from './bestMonths';

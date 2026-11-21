@@ -6,8 +6,8 @@ import { _resetDedupe } from '../../api/_lib/dedupe';
 import { MASKS } from '../../api/_lib/places';
 import { _resetRateLimit } from '../../api/_lib/ratelimit';
 import { _resetRedis } from '../../api/_lib/redis';
-import { GET as hours } from '../../api/places/hours';
-import { POST as legs } from '../../api/routes/legs';
+import { GET as hours } from '../../api/_routes/places/hours';
+import { POST as legs } from '../../api/_routes/routes/legs';
 
 const KEY = 'AIzaTEST-server-key-4';
 const seen: { url: string; mask: string | null; body?: Record<string, unknown> }[] = [];
@@ -51,7 +51,7 @@ describe('POST /api/routes/legs', () => {
   });
 });
 
-import { POST as nearby } from '../../api/places/nearby';
+import { POST as nearby } from '../../api/_routes/places/nearby';
 describe('POST /api/places/nearby', () => {
   it('uses the Enterprise mask for rated layers and the Pro mask for ATMs/pharmacies', async () => {
     const calls: { mask: string | null; body: Record<string, unknown> }[] = [];
@@ -70,7 +70,7 @@ describe('POST /api/places/nearby', () => {
   });
 });
 
-import { POST as transport } from '../../api/places/transport';
+import { POST as transport } from '../../api/_routes/places/transport';
 describe('POST /api/places/transport (Phase 6)', () => {
   it('two Nearby Search Pro calls (stations, airports) with the transport mask; IDs, names and coordinates only', async () => {
     const calls: { mask: string | null; body: Record<string, unknown> }[] = [];

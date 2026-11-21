@@ -5,9 +5,9 @@ import { _resetRateLimit } from '../../api/_lib/ratelimit';
 import { _resetRedis } from '../../api/_lib/redis';
 import { sha256 } from '../../api/_lib/supabase';
 import { GET as keepalive } from '../../api/cron/keepalive';
-import { POST as createInvite } from '../../api/invites/create';
-import { POST as redeem } from '../../api/invites/redeem';
-import { POST as members } from '../../api/members/update';
+import { POST as createInvite } from '../../api/_routes/invites/create';
+import { POST as redeem } from '../../api/_routes/invites/redeem';
+import { POST as members } from '../../api/_routes/members/update';
 
 const SB = 'https://testproject.supabase.co', SERVICE = 'service-role-SECRET-test', ANON = 'anon-test';
 const TRIP = '11111111-1111-1111-1111-111111111111', OWNER = '00000000-0000-0000-0000-00000000000a', RIYA = '00000000-0000-0000-0000-00000000000b';

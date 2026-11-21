@@ -1,10 +1,10 @@
 // POST /api/places/autocomplete  { input, sessionToken }
 // Destination search: cities, towns, hill stations, islands, regions and parks, anywhere, biased toward India.
 import { z } from 'zod';
-import { dedupe } from '../_lib/dedupe';
-import { googlePlaces } from '../_lib/google';
-import { handler, json, readJson } from '../_lib/http';
-import { MASKS } from '../_lib/places';
+import { dedupe } from '../../_lib/dedupe';
+import { googlePlaces } from '../../_lib/google';
+import { handler, json, readJson } from '../../_lib/http';
+import { MASKS } from '../../_lib/places';
 
 const Body = z.object({
   input: z.string().trim().min(2).max(80),

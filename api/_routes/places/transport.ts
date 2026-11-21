@@ -2,10 +2,10 @@
 // hotel comparison ("distance to the station or airport"). Two Nearby Search Pro calls (IDs, names, coordinates only),
 // only when the user opens a comparison; the browser keeps the result in memory for the session.
 import { z } from 'zod';
-import { dedupe } from '../_lib/dedupe';
-import { googlePlaces } from '../_lib/google';
-import { handler, json, readJson } from '../_lib/http';
-import { LatLngSchema, MASKS, toLL, type GPlace } from '../_lib/places';
+import { dedupe } from '../../_lib/dedupe';
+import { googlePlaces } from '../../_lib/google';
+import { handler, json, readJson } from '../../_lib/http';
+import { LatLngSchema, MASKS, toLL, type GPlace } from '../../_lib/places';
 
 const Body = z.object({ center: LatLngSchema });
 const KINDS = { stations: { types: ['train_station'], radius: 25_000 }, airports: { types: ['airport'], radius: 50_000 } } as const;
