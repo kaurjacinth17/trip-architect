@@ -1,7 +1,5 @@
 /// <reference types="vite/client" />
 interface ImportMetaEnv {
-  readonly VITE_TILE_URL?: string;
-  readonly VITE_TILE_ATTRIBUTION?: string;
   readonly VITE_SITE_URL?: string;
   readonly VITE_CONTACT_EMAIL?: string;
   readonly VITE_GOOGLE_MAPS_BROWSER_KEY?: string;

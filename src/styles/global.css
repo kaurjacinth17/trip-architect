@@ -199,23 +199,19 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ptabs button.drop{background:var(--forest-soft);outline:2px dashed var(--forest)}
 /* Leaflet maps */
 .map{touch-action:auto}
-.map .leaflet-container{position:absolute;inset:0;height:100%;width:100%;background:light-dark(#eef1e6,#16211c);font:inherit}
 .mapctl{z-index:1000}
-.leaflet-control-attribution{font-size:11px}
-.leaflet-container .leaflet-control-attribution{background:color-mix(in srgb,var(--paper) 85%,transparent);color:var(--ink)}
-.leaflet-container .leaflet-control-attribution a{color:var(--forest)}
+.gpin{display:flex;align-items:center;gap:4px}
+.gpin .plab{font:700 12.5px/1.2 var(--sans);color:var(--ink);text-shadow:0 0 3px var(--bg),0 0 3px var(--bg),0 0 3px var(--bg);white-space:nowrap}
+.alab{font:700 12px/1.2 var(--sans);color:var(--forest);text-shadow:0 0 3px var(--bg),0 0 3px var(--bg)}
+.searcharea{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5}
+.mapfb ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;max-height:360px;overflow:auto}
+.nearbylist{max-height:420px;overflow:auto}
 .pin{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#fff;font:800 11px/1 var(--sans);border:2.5px solid var(--bg);box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .pin.on{width:32px;height:32px;font-size:13px}
 .pin-idea{width:14px;height:14px;border-radius:50%;background:var(--paper);border:2.5px solid currentColor}
 .pin-idea.on{width:20px;height:20px}
 .pin-stay{display:grid;place-items:center;width:24px;height:24px;border-radius:6px;background:var(--ink);border:2px solid var(--bg)}
 .pin-stay svg{width:14px;height:14px;fill:var(--bg)}
-.leaflet-div-icon{background:transparent;border:0}
-.leaflet-tooltip.plab{background:transparent;border:0;box-shadow:none;padding:0 0 0 2px;font:700 12.5px/1.2 var(--sans);color:var(--ink);text-shadow:0 0 3px var(--bg),0 0 3px var(--bg),0 0 3px var(--bg)}
-.leaflet-tooltip.plab::before{display:none}
-.leaflet-tooltip.alab{background:transparent;border:0;box-shadow:none;font:700 12px/1.2 var(--sans);color:var(--forest);text-shadow:0 0 3px var(--bg),0 0 3px var(--bg)}
-.leaflet-tooltip.alab::before{display:none}
-.leaflet-marker-icon:focus-visible{outline:2px solid var(--terra);outline-offset:2px}
 /* dialogs */
 .modal:focus{outline:none}
 .modal h2{padding-right:8px}

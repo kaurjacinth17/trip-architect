@@ -26,7 +26,7 @@ const tripFix = (f: Fix | null | undefined): TripFix => {
 };
 
 describe('1. sample trip', () => {
-  const t = buildSampleTrip(new Date());
+  const t = buildSampleTrip(TODAY); // built at collection time, before the clock is mocked, so pass the date explicitly
 
   it('matches the reference set-up', () => {
     expect(t.name).toBe('Jaipur getaway');

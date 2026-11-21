@@ -3,6 +3,8 @@ import { mockApi } from './mockApi';
 
 test.use({ viewport: { width: 1360, height: 1600 } });
 test.beforeEach(async ({ page }) => {
+  // Freeze "today" so the sample trip's dates (and weekdays) are always the same
+  await page.clock.setFixedTime(new Date('2026-11-20T10:00:00'));
   await page.route(/fonts\.(googleapis|gstatic)\.com|tile\.openstreetmap\.org/, (r) => r.fulfill({ status: 200, body: '' }));
 });
 const titles = (page: Page) => page.locator('.tl .blk .bt').allTextContents();

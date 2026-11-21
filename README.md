@@ -10,7 +10,8 @@ export, print and share options.
 - Works with no keys at all (guest mode, trips in `localStorage`, 8 curated destinations). Live place data, maps,
   photos and accounts switch on as you add keys: see **[docs/SETUP.md](docs/SETUP.md)**.
 - Server code lives in `api/` (Vercel functions); `npm run dev` serves it locally too.
-- Vite + React 18 + TypeScript (strict), React Router, Zustand, @dnd-kit, Leaflet, lz-string.
+- Vite + React 18 + TypeScript (strict), React Router, Zustand, TanStack Query, @dnd-kit, Google Maps
+  (`@vis.gl/react-google-maps`), zod, lz-string; Vercel functions in `api/`.
 - Ported from the single-file prototype `trip-architect-reference.html` (see `PLAN.md` and `NOTES.md`).
 
 ## 1. Run it locally
@@ -46,8 +47,8 @@ Optional settings go in a `.env` file (copy `.env.example`):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `VITE_TILE_URL` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Raster tile template for the maps |
-| `VITE_TILE_ATTRIBUTION` | `© OpenStreetMap contributors` (linked) | Attribution shown on maps and in the footer |
+| `VITE_GOOGLE_MAPS_BROWSER_KEY`, `VITE_GOOGLE_MAPS_MAP_ID` | none | Google Maps (see docs/SETUP.md) |
+| `GOOGLE_PLACES_SERVER_KEY`, `UPSTASH_*` | none | Live place data and its daily budget (server only) |
 | `VITE_SITE_URL` | `https://trip-architect.vercel.app` | Your public URL, for canonical/Open Graph tags, `robots.txt` and `sitemap.xml` |
 
 ## 2. Push to a new GitHub repository
@@ -70,8 +71,8 @@ GitHub Actions (`.github/workflows/ci.yml`) then runs typecheck, lint, Vitest an
 2. **Add New → Project**, pick the `trip-architect` repository, and **Import**.
 3. Vercel detects Vite. Leave the build command (`npm run build`) and output directory (`dist`) as they are.
 4. Under **Environment Variables**, add `VITE_SITE_URL` with the URL you'll use (for example
-   `https://trip-architect-yourname.vercel.app`). Add `VITE_TILE_URL` / `VITE_TILE_ATTRIBUTION` if you use another
-   tile provider.
+   `https://trip-architect-yourname.vercel.app`). Add the Google, Upstash and other keys from
+   [docs/SETUP.md](docs/SETUP.md) for **both Production and Preview**.
 5. **Deploy**. Every push to `main` redeploys; pull requests get preview URLs.
 
 `vercel.json` rewrites every path to `/index.html`, so deep links such as `/trips/abc/itinerary` work on reload.
@@ -120,22 +121,13 @@ the `DESTS` array:
 Then run `npm test`. The engine tests and the type checker will catch shape errors. (The parity test compares
 against the reference file's own data, so it only covers the original eight destinations.)
 
-## 5. Map tiles: read this before you get traffic
+## 5. Maps and live data: costs
 
-The maps use Leaflet with raster tiles from `VITE_TILE_URL`, defaulting to the OpenStreetMap Foundation's
-`tile.openstreetmap.org`, with the required attribution on every map and in the footer.
-
-The OSMF tile servers are run on donated resources and are **not meant for heavy use**. Their
-[tile usage policy](https://operations.osmfoundation.org/policies/tiles/) requires visible attribution, a valid
-HTTP referer/user agent (browsers send these), respecting the servers' caching headers, and no bulk downloading or
-prefetching. The OSMF may limit or block sites that put a heavy load on the servers, without notice, and there is
-no uptime guarantee. That's fine for a personal project, a demo or light traffic. **If you expect real public
-traffic, switch to a tile provider whose terms allow it** (a paid or free-tier plan from a commercial OSM tile
-host, or tiles you host yourself) by setting `VITE_TILE_URL` and `VITE_TILE_ATTRIBUTION`. Check the policy page
-again before you launch, since terms change.
-
-OpenFreeMap (mentioned in the brief) serves vector tiles and MapLibre styles rather than raster PNGs, so it would
-need a vector renderer (for example MapLibre GL) instead of Leaflet's `L.tileLayer`.
+All maps are Google Maps (Maps JavaScript API, `VITE_GOOGLE_MAPS_BROWSER_KEY`); Google's terms require Places data
+on a map to be shown on a Google Map. Without the browser key the site shows lists with "Open in Google Maps" links
+instead of maps. Live place data (search, City Guide, nearby layers, opening hours) goes through the `/api`
+functions with the server key, under a daily budget per Google SKU that keeps each month inside the free usage.
+`docs/SETUP.md` has the numbers, the console steps and what happens when a budget is used up.
 
 ## How it's built
 
@@ -145,7 +137,7 @@ src/
   engine/      pure TypeScript, no React or DOM: geo, time, schedule, checks, fixes, generate, budget,
                packing, readiness, share (text exports, print HTML, JSON import/export, share links)
   store/       zustand: trips (persisted, versioned, undo stack of 60 per trip), ui (session), toast
-  components/  Scene (SVG illustrations), cards, Modal (focus trap), Toast, MapView (Leaflet), shell
+  components/  Scene (SVG illustrations), cards, Modal (focus trap), Toast, GMap (Google Maps), shell
   pages/       Home, Explore, Destination, Compare, NewTrip, Trips, About, Print, Shared, trip/* tabs
   styles/      global.css: the reference stylesheet plus web additions
 ```

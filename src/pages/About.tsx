@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useTitle } from '../lib/hooks';
-import { TILE_ATTRIBUTION_TEXT } from '../lib/tiles';
 
 export function About() {
   useTitle('About and FAQ');
@@ -45,7 +44,7 @@ export function About() {
           </details>
           <details>
             <summary>Who made the maps and pictures?</summary>
-            <p>Map tiles: {TILE_ATTRIBUTION_TEXT}. Place pins use stored, approximate coordinates; open a place in Google Maps for streets and directions. The destination illustrations are original SVG drawings, not photos.</p>
+            <p>Maps, place details, ratings and place photos come from Google Maps. Neighbourhood lists come from © OpenStreetMap contributors, overviews from Wikipedia, and climate averages from Open-Meteo. Pins for the 8 hand-written guides use our own stored coordinates. The destination illustrations are original SVG drawings.</p>
           </details>
         </div>
       </section>

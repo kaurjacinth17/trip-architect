@@ -12,11 +12,12 @@ import { dayDate, fmtD, fmtT, hm } from '../engine/time';
 import type { Trip } from '../engine/types';
 import { inr, plural } from '../engine/util';
 import { useTitle } from '../lib/hooks';
+import { useTripView } from '../lib/useTripView';
 import { toast } from '../store/toast';
 import { useTrips } from '../store/trips';
-import type { LL, Pin } from '../components/MapView';
+import { hasGoogleMaps, MapFallback, type GPin, type GRoute } from '../components/GMap';
 
-const MapView = lazy(() => import('../components/MapView'));
+const GMapLazy = lazy(() => import('../components/GMap').then((m) => ({ default: m.GMap })));
 
 export default function Shared() {
   const { hash } = useLocation();
@@ -27,16 +28,16 @@ export default function Shared() {
     try { setState({ t: decodeShare(hash), err: null }); }
     catch (e) { setState({ t: null, err: (e as Error).message }); }
   }, [hash]);
-  const t = state.t;
+  const t = useTripView(state.t || undefined) || null;
   useTitle(t ? `${t.name} (shared)` : 'Shared trip');
 
   const map = useMemo(() => {
     if (!t) return null;
-    const pts: Pin[] = [], routes: { col: string; pts: LL[] }[] = [];
+    const pts: GPin[] = [], routes: GRoute[] = [];
     t.plan.forEach((d, i) => {
       const col = DAYC[i % DAYC.length];
-      const g = [...d.items].sort((a, b) => a.s - b.s).filter(geo) as (typeof d.items[number] & LL)[];
-      g.forEach((x, k) => pts.push({ id: x.id, lat: x.lat, lng: x.lng, num: k + 1, col, lab: x.t, kind: 'plan' }));
+      const g = [...d.items].sort((a, b) => a.s - b.s).filter(geo) as (typeof d.items[number] & { lat: number; lng: number })[];
+      g.forEach((x, k) => pts.push({ id: x.id, lat: x.lat, lng: x.lng, label: k + 1, col, title: x.t || 'Saved place', kind: 'place' }));
       routes.push({ col, pts: g });
     });
     const areas = t.dests.flatMap((id) => destView(t, id)?.areas.map((a) => ({ name: a[0], lat: a[2], lng: a[3] })) || []);
@@ -107,7 +108,7 @@ export default function Shared() {
         <h2>Map</h2>
         <div style={{ marginTop: 14 }}>
           <Suspense fallback={<div className="map" />}>
-            <MapView label={`Map of ${t.name}`} pts={map.pts} routes={map.routes} areas={map.areas} fitTo={map.pts.length ? map.pts : null} />
+            {hasGoogleMaps() ? <GMapLazy label={`Map of ${t.name}`} pins={map.pts} routes={map.routes} areas={map.areas} fitTo={map.pts.length ? map.pts : null} /> : <MapFallback pins={map.pts} />}
           </Suspense>
         </div>
       </section>

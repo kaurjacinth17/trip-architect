@@ -18,6 +18,14 @@ describe('Navigate this day', () => {
     expect(u.searchParams.get('waypoint_place_ids')).toBeNull(); // only when every waypoint has one
     expect(u.searchParams.get('travelmode')).toBe('driving');
   });
+  it('passes waypoint place IDs when every waypoint has one, in the same order', () => {
+    const all = Array.from({ length: 4 }, (_, i) => ({ lat: 26 + i / 100, lng: 75, placeId: `ChIJTESTall${String(i).padStart(13, '0')}` }));
+    const u = new URL(navLinks(all, 'transit')[0].url);
+    expect(u.searchParams.get('origin_place_id')).toBe('ChIJTESTall0000000000000');
+    expect(u.searchParams.get('waypoint_place_ids')).toBe('ChIJTESTall0000000000001|ChIJTESTall0000000000002');
+    expect(u.searchParams.get('waypoints')).toBe('26.01,75|26.02,75');
+    expect(u.searchParams.get('travelmode')).toBe('transit');
+  });
   it('splits long days: 9 waypoints on desktop, 3 on mobile, consecutive links share a stop', () => {
     const d = navLinks(stops(14), 'walking');
     expect(d.map((l) => [l.from, l.to])).toEqual([[0, 10], [10, 13]]);

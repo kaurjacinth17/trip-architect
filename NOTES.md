@@ -30,8 +30,8 @@ wishlists, budgets, packing lists, warnings, readiness scores and every one-clic
   `<a download>`; copy uses `navigator.clipboard` with a textarea dialog fallback; print uses `window.print()`.
 - The sync-status line is replaced by "Trips are saved in this browser. Use Share → Download trip file to back up."
 - Hash routes became real URLs (see `PLAN.md`); the `plan`/`pack` tabs are `/itinerary` and `/packing`.
-- The schematic SVG map became Leaflet with raster tiles. The reference rule `.map svg{position:absolute;inset:0;…}`
-  was removed because it breaks Leaflet's vector layer (routes and area circles).
+- The schematic SVG map became Leaflet with raster tiles in the first port, and Google Maps in upgrade Phase 5. The
+  reference rule `.map svg{position:absolute;inset:0;…}` was removed because it broke the map's vector layer.
 - HTML5 drag and drop became @dnd-kit (mouse + touch). Touch drags start after a 220 ms press-and-hold so the page
   still scrolls normally. Dropping a library place on the wishlist saves it there (the reference ignored that drop).
 - Deleting a trip shows a toast with **Undo** that restores it (the reference said it couldn't be undone).
@@ -44,7 +44,8 @@ wishlists, budgets, packing lists, warnings, readiness scores and every one-clic
 - **Colour contrast:** Lighthouse flags a few reference palette pairs (terracotta text on the blush `tag.t`, the
   terracotta kicker, and the category colours on sand tags) as slightly under 4.5:1. They were kept to match the
   reference design. Accessibility still scores 96–97.
-- **Map tiles:** the default is `tile.openstreetmap.org`, which is not meant for heavy traffic (see README).
+- **Maps** need `VITE_GOOGLE_MAPS_BROWSER_KEY` (since Phase 5). Without it, map tabs show a list of the day's stops
+  with Google Maps links instead.
 - **Share links** carry the whole trip, so large trips make long links (a warning appears over 8,000 characters).
 - The dnd-kit keyboard sensor is deliberately not used: the ↑/↓ buttons are the keyboard path, as in the reference.
 
@@ -122,3 +123,19 @@ Judgement calls made while implementing the upgrade, so they can be reviewed:
 - **Travel legs** in the Add bar are simple travel blocks for now; tickets, times and helpers come with Phase 10.
 - **Day start/end points** can be the night's stay (default), nowhere, or a dropped pin. Pins are user data. A
   Google hotel's coordinates are never copied into a day's start point (they'd escape the 30-day refresh).
+
+### Phase 5 notes
+
+- **Google Maps everywhere.** Leaflet and OpenStreetMap tiles are gone; the trip map, destination map, shared view,
+  custom-place pin and day start/end pins all use Google Maps (`GMap`). Day routes are dashed polylines in visit order;
+  neighbourhoods are shaded circles; the night's stay is a house pin.
+- **Without a browser key** the map tabs fall back to a list of stops with "Google Maps" links, and pin dropping falls
+  back to typed coordinates.
+- **Nearby layers** (restaurants, cafés, attractions, ATMs, pharmacies) call Nearby Search (Enterprise, 220/day) only
+  when a layer is switched on or "Search this area" is tapped, for the visible area (radius capped at 10 km), one call
+  per layer, cached in memory for 30 minutes. Rating, open-now and price filters run on the loaded results.
+- **Navigate this day** builds Google Maps directions links (free, no key): start point, stops in order, end point,
+  travel mode. Google allows 9 waypoints (3 in mobile browsers), so long days split into consecutive links. Place IDs
+  are passed for the origin and destination when known, and for waypoints only when every waypoint has one (Google
+  requires the two lists to match).
+- **Test fix:** two tests depended on today's date (the sample trip starts 21 days from today); they now pin the date.

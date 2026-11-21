@@ -15,11 +15,11 @@ import { inr } from '../engine/util';
 import { useTitle } from '../lib/hooks';
 import { toast } from '../store/toast';
 import { tripList, useTrips } from '../store/trips';
-import type { Pin } from '../components/MapView';
 import LiveDestination from './LiveDestination';
+import { hasGoogleMaps, MapFallback, type GPin } from '../components/GMap';
 import { CURATED_PLACE_IDS } from '../data/curatedPlaceIds';
 
-const MapView = lazy(() => import('../components/MapView'));
+const GMapLazy = lazy(() => import('../components/GMap').then((m) => ({ default: m.GMap })));
 
 /** Google Maps link; uses the place ID when the curated place has been linked (scripts/link-curated.ts). */
 export function mapsLink(lat: number, lng: number, placeId?: string) {
@@ -86,7 +86,7 @@ function CuratedDestination({ id }: { id: string }) {
   const [adding, setAdding] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const sample = useMemo(() => (d ? buildTrip({ dests: [d.id], days: d.days[0], travelers: ['A', 'B'], pace: 'balanced', prefs: DEFAULT_PREFS }) : null), [d]);
-  const pins = useMemo<Pin[]>(() => (d ? d.pl.map((p) => ({ id: p.pid, lat: p.lat, lng: p.lng, col: CATS[p.cat][1], lab: p.n, kind: 'idea' as const })) : []), [d]);
+  const pins = useMemo<GPin[]>(() => (d ? d.pl.map((p) => ({ id: p.pid, lat: p.lat, lng: p.lng, col: CATS[p.cat][1], title: p.n, kind: 'idea' as const, showTitle: true })) : []), [d]);
   const areas = useMemo(() => (d ? d.areas.map((a) => ({ name: a[0], lat: a[2], lng: a[3] })) : []), [d]);
   if (!d || !sample) return <Missing />;
   const [lo, hi] = estRange(d);
@@ -161,9 +161,9 @@ function CuratedDestination({ id }: { id: string }) {
       <section className="sec">
         <h2>Places on the map</h2>
         <Suspense fallback={<div className="map" />}>
-          <MapView label={`Map of places in ${d.name}`} pts={pins} areas={areas} labels sel={picked} onPick={setPicked} />
+          {hasGoogleMaps() ? <GMapLazy label={`Map of places in ${d.name}`} pins={pins} areas={areas} active={picked} onPick={setPicked} /> : <MapFallback pins={pins.map((p) => ({ ...p, kind: 'place' }))} onPick={setPicked} />}
         </Suspense>
-        <p className="tiny muted" style={{ marginTop: 6 }}>Pins come from stored coordinates and may be approximate; open any place in Google Maps for streets and directions.</p>
+        <p className="tiny muted" style={{ marginTop: 6 }}>Pins for the guide’s places come from our stored coordinates and may be approximate; open a place in Google Maps for directions.</p>
       </section>
 
       <section className="sec grid g2">

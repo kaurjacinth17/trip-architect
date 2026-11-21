@@ -38,6 +38,11 @@ export async function mockApi(page: Page, opts: MockOptions = {}) {
       return json(route, { places: list.map(mapPlace) });
     }
     if (p === '/api/places/photo') return json(route, { uri: null });
+    if (p === '/api/places/nearby') {
+      const b = route.request().postDataJSON() as { layer: string; center: { lat: number; lng: number } };
+      const list = (b.layer === 'cafes' ? googleSearch.cafes : b.layer === 'restaurants' ? googleSearch.restaurants : { places: [] }).places as GPlace[];
+      return json(route, { places: list.map((x, i) => mapPlace({ ...x, location: { latitude: b.center.lat + 0.002 * (i + 1), longitude: b.center.lng } })) });
+    }
     if (p === '/api/places/hours') {
       // Every fixture place opens 10:00–17:00 daily, except it's closed on Mondays
       const periods = [0, 2, 3, 4, 5, 6].map((d) => ({ open: d * 1440 + 600, close: d * 1440 + 1020 }));
