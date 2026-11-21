@@ -17,6 +17,8 @@ export const MASKS = {
   nearbyBasic: 'places.id,places.displayName,places.types,places.primaryType,places.location,places.googleMapsUri,places.shortFormattedAddress,places.businessStatus',
   /** Nearby Search Pro: main railway station and airport near a destination (hotel compare distances) */
   transport: 'places.id,places.displayName,places.location,places.types',
+  /** Place Details Essentials: a hotel's address in another language (the "show to driver" card) */
+  address: 'formattedAddress',
   /** Text Search Pro: a destination's place ID and its first photo (Explore cards, destination hero) */
   cover: 'places.id,places.photos',
   /** Place Details Enterprise: the detail drawer */

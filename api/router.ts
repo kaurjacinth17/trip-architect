@@ -11,6 +11,7 @@ import * as inviteRedeem from './_routes/invites/redeem';
 import * as members from './_routes/members/update';
 import * as placeId from './_routes/places/[id]';
 import * as autocomplete from './_routes/places/autocomplete';
+import * as address from './_routes/places/address';
 import * as cover from './_routes/places/cover';
 import * as destination from './_routes/places/destination';
 import * as hours from './_routes/places/hours';
@@ -22,13 +23,14 @@ import * as placeSummary from './_routes/places/summary';
 import * as transport from './_routes/places/transport';
 import * as legs from './_routes/routes/legs';
 import * as summary from './_routes/summary';
+import * as weather from './_routes/weather';
 import * as keepalive from './cron/keepalive';
 
 type Mod = Partial<Record<'GET' | 'POST' | 'DELETE' | 'PATCH', Handler>>;
 export const ROUTES: Record<string, Mod> = {
-  areas, climate, fx, health, summary,
+  areas, climate, fx, health, summary, weather,
   'invites/create': inviteCreate, 'invites/redeem': inviteRedeem, 'members/update': members,
-  'places/autocomplete': autocomplete, 'places/cover': cover, 'places/destination': destination, 'places/hours': hours, 'places/lite': lite,
+  'places/autocomplete': autocomplete, 'places/address': address, 'places/cover': cover, 'places/destination': destination, 'places/hours': hours, 'places/lite': lite,
   'places/nearby': nearby, 'places/photo': photo, 'places/search': search, 'places/summary': placeSummary, 'places/transport': transport,
   'routes/legs': legs, 'cron/keepalive': keepalive,
 };

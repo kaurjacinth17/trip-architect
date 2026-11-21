@@ -83,6 +83,8 @@ export interface Item {
   booking?: { status: 'none' | 'needed' | 'booked'; ref?: string };
   link?: string;
   tags?: string[];
+  /** A travel leg (train, flight, bus, car): `s` is departure, `d` the journey time (may run past midnight) */
+  leg?: TravelLeg;
   /** Check-in / check-out block created by "Set as my stay" (locked; removed or moved when the stay's nights change) */
   stayRef?: { id: string; kind: 'in' | 'out' };
   t: string;
@@ -115,6 +117,9 @@ export interface Day {
   /** Pace for this day only */
   pace?: PaceKey;
 }
+
+export type LegMode = 'train' | 'flight' | 'bus' | 'car';
+export interface TravelLeg { mode: LegMode; from: string; to: string; ref?: string; seat?: string }
 
 export type DayLoc = { kind: 'hotel' } | { kind: 'none' } | { kind: 'point'; label: string; lat: number; lng: number };
 
@@ -252,6 +257,12 @@ export interface Trip {
   travelerUpi?: (string | null)[];
   /** Which traveller is using this device (for the edit history); guests choose it in Expenses */
   me?: number;
+  /** Personal needs that shape suggestions and checks */
+  needs?: Needs;
+  /** Booking confirmations (files stay on this device, in IndexedDB) */
+  bookings?: Booking[];
+  /** Emergency contacts the group chose to note down */
+  contacts?: { name: string; phone: string }[];
   /** Set for trips stored in a signed-in account (Supabase); your role in it */
   cloud?: { role: 'owner' | 'editor' | 'viewer' };
   stays: Stay[];
@@ -303,6 +314,22 @@ export interface DestRecord {
   days?: [number, number];
   /** User-entered (abroad, or types without a curated basis) daily costs, INR, per room / per person */
   cost?: CostTiers | null;
+}
+
+export interface Needs { veg?: boolean; jain?: boolean; wheelchair?: boolean; kids?: boolean; senior?: boolean }
+export interface Booking {
+  id: string;
+  kind: 'ticket' | 'stay' | 'activity' | 'other';
+  title: string;
+  ref: string;
+  status: 'booked' | 'pending';
+  /** Linked itinerary item or stay */
+  itemId?: string;
+  stayId?: string;
+  /** File kept on this device (IndexedDB key) */
+  fileId?: string;
+  fileName?: string;
+  notes?: string;
 }
 
 export type Level = 'alert' | 'caution' | 'tip';

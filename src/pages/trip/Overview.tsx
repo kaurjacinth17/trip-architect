@@ -12,6 +12,7 @@ import { InsertDestDialog } from '../../components/InsertDestDialog';
 import { FX_SUPPORTED } from '../../data/currencies';
 import { byLevel } from '../../engine/checks';
 import { involved, removeTraveller } from '../../engine/expenses';
+import { EmergencyCard, NeedsCard } from './Extras';
 import { readiness } from '../../engine/readiness';
 import { isAct } from '../../engine/schedule';
 import type { PaceKey, Warning } from '../../engine/types';
@@ -109,6 +110,10 @@ export function Overview({ t, A, fix, goDay }: TabProps) {
       </div>
 
       <DestinationsManager t={t} />
+      <section className="sec grid g2" style={{ alignItems: 'start' }}>
+        <NeedsCard t={t} />
+        <EmergencyCard t={t} />
+      </section>
       <section className="sec grid g2">
         {t.dests.map((id) => {
           const v = destView(t, id);

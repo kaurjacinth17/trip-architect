@@ -22,7 +22,7 @@ function watchErrors(page: Page) {
   return errors;
 }
 
-for (const width of [1360, 390]) {
+for (const width of [1360, 360]) {
   test.describe(`at ${width}px`, () => {
     test.use({ viewport: { width, height: 900 } });
     for (const route of ROUTES) {

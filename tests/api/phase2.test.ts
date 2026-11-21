@@ -60,6 +60,7 @@ describe('field masks (every change here changes the Google bill)', () => {
   it('match the snapshot', () => {
     expect(MASKS).toMatchInlineSnapshot(`
       {
+        "address": "formattedAddress",
         "autocomplete": "suggestions.placePrediction.placeId,suggestions.placePrediction.structuredFormat,suggestions.placePrediction.types",
         "cover": "places.id,places.photos",
         "destination": "id,displayName,location,viewport,types,primaryType,addressComponents,timeZone,googleMapsUri",

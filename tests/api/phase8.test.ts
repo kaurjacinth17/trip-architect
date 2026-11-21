@@ -116,3 +116,13 @@ describe('keep-alive cron (Phase 8)', () => {
     expect(calls.find((c) => c.url.includes('/items'))?.body).toEqual({ lat: null, lng: null, coords_fetched_at: null });
   });
 });
+
+import { mapForecast } from '../../api/_routes/weather';
+import { MASKS } from '../../api/_lib/places';
+describe('Phase 10 endpoints', () => {
+  it('maps the Open-Meteo forecast; the address lookup uses the Essentials mask', () => {
+    const days = mapForecast({ daily: { time: ['2026-12-16', '2026-12-17'], temperature_2m_max: [28, null], temperature_2m_min: [12, 11], precipitation_probability_max: [40, 10], precipitation_sum: [1.2, 0], weather_code: [3, 1] } });
+    expect(days).toEqual([{ date: '2026-12-16', tmax: 28, tmin: 12, rainProb: 40, rainMm: 1.2, code: 3 }]);
+    expect(MASKS.address).toBe('formattedAddress');
+  });
+});

@@ -13,6 +13,7 @@ export const LAYERS = {
   attractions: { types: ['tourist_attraction'], rich: true },
   atms: { types: ['atm'], rich: false },
   pharmacies: { types: ['pharmacy'], rich: false },
+  hospitals: { types: ['hospital'], rich: false },
 } as const;
 
 const Body = z.object({

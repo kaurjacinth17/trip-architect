@@ -170,6 +170,8 @@ async function doPush(id: string) {
   const next = tripToRows(local, id, owners.get(id) || uid);
   const d = diffRows(prev, next);
   if (!d.trip && !d.destinations.length && !d.changes.length) return;
+  // Offline: keep the edits on this device and send them when the connection is back.
+  if (!navigator.onLine) { setStatus(id, 'offline'); return; }
   setStatus(id, 'saving');
   const confirmed = structuredClone(prev);
   try {
@@ -361,7 +363,7 @@ export function wireSync() {
     if (applying) return;
     for (const [id, t] of Object.entries(s.trips)) if (t.cloud && base.has(id) && t !== prev.trips[id]) schedule(id);
   });
-  addEventListener('online', () => { for (const id of base.keys()) { void loadTrip(id); } });
+  addEventListener('online', () => { for (const id of base.keys()) void push(id); });
 }
 
 /** Test hooks */

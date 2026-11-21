@@ -18,6 +18,7 @@ import { Overview } from './Overview';
 import { Budget } from './Budget';
 import { Expenses } from './expenses/Expenses';
 import { Together } from './Together';
+import { Bookings, TodayCard } from './Extras';
 import { PresenceBar } from '../../components/cloud/Social';
 import { track } from '../../lib/cloud/sync';
 import { Stays } from './Stays';
@@ -27,7 +28,7 @@ import { Share } from './Share';
 const Studio = lazy(() => import('./Studio'));
 const TripMap = lazy(() => import('./TripMap'));
 
-export const TABS = [['overview', 'Overview'], ['itinerary', 'Itinerary'], ['map', 'Map'], ['budget', 'Budget'], ['expenses', 'Expenses'], ['stays', 'Stays'], ['packing', 'Packing'], ['share', 'Share'], ['together', 'Together']] as const;
+export const TABS = [['overview', 'Overview'], ['itinerary', 'Itinerary'], ['map', 'Map'], ['budget', 'Budget'], ['expenses', 'Expenses'], ['stays', 'Stays'], ['bookings', 'Bookings'], ['packing', 'Packing'], ['share', 'Share'], ['together', 'Together']] as const;
 export type TabKey = (typeof TABS)[number][0];
 
 export interface TabProps {
@@ -82,6 +83,7 @@ export default function TripPage() {
           {plural(t.plan.length, 'day')} · {plural(travellers(t), 'traveller')} · {paceOf(t.pace).l} pace
         </p>
       </div>
+      <TodayCard t={t} />
       <nav className="tabs" aria-label="Trip sections">
         {TABS.filter(([k]) => k !== 'together' || t.cloud).map(([k, l]) => (
           <Link key={k} to={`/trips/${t.id}/${k}`} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined}>
@@ -98,6 +100,7 @@ export default function TripPage() {
         {tab === 'budget' && <Budget {...props} />}
         {tab === 'expenses' && <Expenses {...props} />}
         {tab === 'stays' && <Stays {...props} />}
+        {tab === 'bookings' && <Bookings t={t} />}
         {tab === 'packing' && <Packing {...props} />}
         {tab === 'share' && <Share {...props} />}
         {tab === 'together' && <Together {...props} />}

@@ -235,3 +235,34 @@ deployment since then failed. All endpoints now live in `api/_routes/` (undersco
 functions) and one function, `api/router.ts`, serves them: `vercel.json` rewrites `/api/<path>` to
 `/api/router?__path=<path>`. The daily cron keeps its own function (`api/cron/keepalive.ts`), so 2 in total. URLs
 are unchanged. A test fails if another deployable file appears in `api/`.
+
+### Feedback batch (after Phase 8) and Phases 9–10
+
+- **Photos (Phase 9):** Google Place Photos for every destination (owner's choice): Explore cards, destination heroes
+  and trip cards; edge-cached lookups, credited, never re-hosted; illustrations as fallback. Single hero photo rather
+  than a carousel (each extra photo costs from the 220/day budget).
+- **More destinations:** 32 popular places across India on Explore (`src/data/popular.ts`: names, states, our mood
+  tags and a one-line descriptor). Everything else is live (Google, OSM, Open-Meteo) when a card is opened. No data
+  was scraped from Zostel, The Hosteller or elsewhere.
+- **New trips start with one destination**; more can be added from Overview → Destinations.
+- **Hotels:** "Where are you staying?" prompt on Itinerary and Map; Optimise route starts at the hotel; Stays tab finds
+  hotels by name and suggests hotels by Google rating; Google rating, reviews and the hotel's own website are shown
+  live (never stored). Booking-site links and the user rating field are gone. Room prices aren't available from Google,
+  so the user types the price they're quoted (no invented prices).
+- **Maps:** nearby cards open a details drawer (photos, hours, website) with Add to day / as a meal; nearby layer
+  buttons explain why they're off when live data isn't available; an OpenStreetMap overview map shows guide places,
+  the user's own pins and hand-typed hotels (Google places only on the Google map, per Google's terms).
+- **City Guide:** for the eight curated cities, the hand-written places fill every tab when live data is off. An
+  empty guide elsewhere means live data isn't available (check `/api/health` → `googlePlaces: true`).
+- **Phase 10:** travel legs (locked, next-day start after overnight arrivals, IRCTC/flight/driving links, late-arrival
+  check), bookings vault (references travel with the trip; files stay on the device in IndexedDB, not synced), Today
+  mode (now/next, leave by, Navigate, mark done, +30/+60 min respecting locks), 16-day forecast on day headers with
+  rain/heat checks and forecast-based packing suggestions, .ics export and Google Calendar links, personal needs
+  (veg/Jain, wheelchair, children, seniors) shaping guide defaults and checks, per-person and shared packing,
+  installable PWA (manifest, icons, service worker caching the app shell only; offline edits to account trips are
+  sent when back online), emergency card (112/108, hotel address in English and the state's language from Google,
+  nearest hospitals and pharmacies, contacts), templates via link (no expenses or personal data; "Use this
+  itinerary"), Vercel Analytics, optional Sentry, feedback button, reduced-motion, 360 px overflow checks, and a
+  one-time "What's new" banner.
+- **Not done / limits:** template gallery (needs accounts in production), booking files don't sync between devices,
+  receipt photo uploads, Lighthouse score not measured here, per-member (rather than per-trip) needs.

@@ -12,6 +12,7 @@ import { About } from './pages/About';
 import { Privacy, Terms } from './pages/Legal';
 import { LiveDataBanner } from './components/LiveDataBanner';
 import { cloudConfigured } from './lib/cloud/client';
+import { FeedbackButton, WhatsNew } from './components/Quality';
 
 const Destination = lazy(() => import('./pages/Destination'));
 const CityGuide = lazy(() => import('./pages/guide/CityGuide'));
@@ -19,6 +20,7 @@ const TripPage = lazy(() => import('./pages/trip/TripPage'));
 const Print = lazy(() => import('./pages/Print'));
 const Shared = lazy(() => import('./pages/Shared'));
 const Join = lazy(() => import('./pages/Join'));
+const Template = lazy(() => import('./pages/Template'));
 const CloudBoot = lazy(() => import('./components/cloud/Account').then((m) => ({ default: m.CloudBoot })));
 
 /** Reference behaviour: scroll to top when the page (not just the tab) changes. */
@@ -63,11 +65,13 @@ export function App() {
   return (
     <>
       <a className="skip" href="#main">Skip to content</a>
+      <FeedbackButton />
       {cloudConfigured() && <Suspense fallback={null}><CloudBoot /></Suspense>}
       <div className="app">
         <Sidebar />
         <div>
           <Topbar />
+          <WhatsNew />
           <LiveDataBanner />
           <main className="main" id="main" tabIndex={-1}>
             <Suspense fallback={<p className="muted" role="status">Loading…</p>}>
@@ -84,6 +88,7 @@ export function App() {
                 <Route path="/trips/:id/:tab" element={<TripPage />} />
                 <Route path="/shared" element={<Shared />} />
                 <Route path="/join/:token" element={<Join />} />
+                <Route path="/template" element={<Template />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />

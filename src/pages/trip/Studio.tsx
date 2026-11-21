@@ -35,6 +35,7 @@ import type { OpenTest } from '../../engine/schedule';
 import { changeDays } from './Overview';
 import { dayEndpoint } from '../../engine/stays';
 import { StayPrompt } from './StayPrompt';
+import { BlockExtras, LegDialog } from './Extras';
 import { CommentsButton, useEditingBy, VoteButtons } from '../../components/cloud/Social';
 import type { TabProps } from './TripPage';
 
@@ -269,6 +270,7 @@ function Block({ t, x, flagged, ind, onEdit, selected, selectMode, onSelect }: {
         <span>until {fmtT(x.s + x.d)}</span>
         {x.area && <span>{x.area}</span>}
         {x.c > 0 && <span>{inr(x.c)} pp</span>}
+        <BlockExtras t={t} di={t.plan.findIndex((d) => d.items.some((y) => y.id === x.id))} x={x} />
         {p && p.best !== 'any' && <span>{BEST[p.best]}</span>}
       </div>
       {(x.tags?.length || x.link) && <div className="bm">{x.tags?.map((g) => <span key={g} className="tag">#{g}</span>)}{x.link && <a href={x.link} target="_blank" rel="noopener noreferrer">Link</a>}</div>}
@@ -336,14 +338,17 @@ function DayMain({ t, A, di, ind, drag, ctx, onEdit, onAddCustom }: {
   const openTest: OpenTest | undefined = ctx.hours && Object.keys(ctx.hours).length && date
     ? (x, minute) => { const ph = x.gid ? ctx.hours![x.gid] : undefined; return ph ? isOpenAt(ph, date.getDay(), minute) : null; }
     : undefined;
+  const [legFor, setLegFor] = useState<number | null>(null);
+  const wx = ctx.weather?.[di];
   const action = (fn: (tt: Trip) => false | void, msg: string) => mut(t.id, fn, msg, true);
 
   return (
     <div>
       <StayPrompt t={t} di={di} />
+      {legFor != null && <LegDialog t={t} di={legFor} onClose={() => setLegFor(null)} />}
       <div className="dayhead">
         <div className="row between" style={{ alignItems: 'center' }}>
-          <h2 className="kicker" style={{ fontFamily: 'var(--sans)', fontSize: 14, fontWeight: 700 }}>Day {di + 1}{date ? ' · ' + fmtD(date) : ''}</h2>
+          <h2 className="kicker" style={{ fontFamily: 'var(--sans)', fontSize: 14, fontWeight: 700 }}>Day {di + 1}{date ? ' · ' + fmtD(date) : ''}{wx && <span className="tag" style={{ marginLeft: 8 }} title="Open-Meteo forecast">{Math.round(wx.tmax)}°/{Math.round(wx.tmin)}°{wx.rainProb != null ? ` · ${wx.rainProb}% rain` : ''}</span>}</h2>
           <span className="tiny muted">
             {plural(st.acts.length, 'activity', 'activities')} · {hm(st.actMin)} · {hm(st.travel)} travel · {st.free ? hm(st.free) + ' free' : 'no free time'} · {inr(st.cost * travellers(t))} entries
           </span>
@@ -363,6 +368,7 @@ function DayMain({ t, A, di, ind, drag, ctx, onEdit, onAddCustom }: {
             const home = dayEndpoint(t, di, 'start');
             action((tt) => { if (!routeOrder(tt.plan[di], openTest, { start: home })) return false; }, home ? `Reordered starting from ${home.label}` : openTest ? 'Reordered by distance and opening hours' : 'Reordered by distance');
           }}>Optimise route</button>
+          <button type="button" className="btn sm" onClick={() => setLegFor(di)}>Add travel leg</button>
           <button type="button" className={'btn sm' + (selectMode ? ' pri' : '')} aria-pressed={selectMode} onClick={() => set({ selectMode: !selectMode, selected: [] })}>{selectMode ? 'Done selecting' : 'Select'}</button>
           <label className="row small" style={{ gap: 6, fontWeight: 600 }} title="Uses Google Routes for this day’s legs (not stored)"><input type="checkbox" checked={liveTravel} onChange={(e) => set({ liveTravel: e.target.checked })} />Live travel times</label>
           <button type="button" className="btn sm ghost" onClick={() => action((tt) => {

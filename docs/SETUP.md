@@ -136,16 +136,21 @@ viewer and outsider checks).
 
 ---
 
-## 4. Unsplash (destination photos: Phase 9)
+## 4. Photos (Phase 9)
 
-1. https://unsplash.com/developers → **Your apps** → **New application** → accept the API guidelines → name
-   "Trip Architect".
-2. Copy the **Access Key** → `UNSPLASH_ACCESS_KEY` (server only).
-3. New apps start in **demo mode: 50 requests per hour**. Before launch, open the app page → **Apply for
-   production** (approval raises it to 1,000 per hour). The application asks for screenshots showing photo credits
-   ("Photo by Name on Unsplash" with links) and that downloads are tracked; Phase 9 implements both.
+Destination photos come from **Google Place Photos** (your choice over Unsplash), using the same server key: no extra
+setup. `/api/places/cover` makes one Text Search Pro call and one Place Photos call per destination and the answer is
+cached at Vercel's edge for 6 hours, so a busy Explore page stays inside the 220 photos/day budget. Each photo is
+loaded from Google by the browser (never re-hosted) and credited to its photographer. When the budget is used up, the
+illustrations show instead. Unsplash is not used, so no Unsplash key is needed.
 
----
+## 4b. Analytics, error reports, feedback (Phase 10)
+
+- **Vercel Web Analytics:** Vercel → your project → **Analytics** → **Enable**. The site already loads it on deployed
+  domains (cookie-free page views; free on Hobby within its limits).
+- **Sentry (optional):** create a free project at sentry.io (React), copy its DSN into `VITE_SENTRY_DSN` in Vercel.
+  Without it, nothing is sent.
+- **Feedback button:** set `VITE_CONTACT_EMAIL`; a "Feedback" button then opens an email with the page address.
 
 ## 5. Vercel environment variables
 

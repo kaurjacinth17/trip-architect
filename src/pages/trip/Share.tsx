@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { exportJSON, printDocument, SHARE_WARN_LENGTH, shareText, shareURL, spendText, summaryText } from '../../engine/share';
+import { encodeShare, exportJSON, printDocument, SHARE_WARN_LENGTH, shareText, shareURL, spendText, summaryText } from '../../engine/share';
 import { slug } from '../../engine/util';
 import { copyText, downloadFile } from '../../lib/browser';
 import type { TabProps } from './TripPage';
 import { People } from './People';
+import { toICS, toTemplate } from '../../engine/extras';
 
 export function Share({ t }: TabProps) {
   const [link, setLink] = useState<string | null>(null);
@@ -41,6 +42,19 @@ export function Share({ t }: TabProps) {
               </div>
             )}
           </>}
+        </div>
+        <div className="card grid" style={{ gap: 10 }}>
+          <h3>Calendar</h3>
+          <p className="small muted">Every block as a calendar event (.ics) for Google Calendar, Apple Calendar or Outlook. Each block also has an “Add to Google Calendar” link in the Itinerary.</p>
+          <div className="row">
+            <button type="button" className="btn" disabled={!t.start} onClick={() => { const ics = toICS(t); if (ics) downloadFile(slug(t.name) + '.ics', ics, 'text/calendar'); }}>Download calendar (.ics)</button>
+            {!t.start && <span className="small muted">Set trip dates first.</span>}
+          </div>
+        </div>
+        <div className="card grid" style={{ gap: 10 }}>
+          <h3>Publish as a template</h3>
+          <p className="small muted">A public, read-only copy of the itinerary without expenses, names, notes, stays or bookings. Anyone with the link can use it with their own dates.</p>
+          <div className="row"><button type="button" className="btn" onClick={() => copyText(`${location.origin}/template#${encodeShare(toTemplate(t))}`, 'Template link copied')}>Copy template link</button></div>
         </div>
         <div className="card grid" style={{ gap: 10 }}>
           <h3>Print or save as PDF</h3>

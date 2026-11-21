@@ -343,3 +343,16 @@ button.tag.linkish{border:0;cursor:pointer}
 .li.clickable{cursor:pointer}
 .li.clickable:hover,.li.clickable:focus-visible{background:var(--sand)}
 .stayprompt{margin-bottom:10px}
+
+/* Phase 10 */
+.today{margin:14px 0;border-color:var(--forest);box-shadow:inset 4px 0 0 var(--forest)}
+.btn.big{font-size:16px;padding:12px 22px}
+.drivercard{margin-top:8px;padding:16px;border:2px solid var(--ink);border-radius:12px;background:#fff;color:#111}
+.drivercard p{font-size:20px;line-height:1.4;margin:8px 0}
+.drivercard .big{font-size:22px}
+.offline{background:#fff3cd}
+.feedback{position:fixed;right:14px;bottom:14px;z-index:40;box-shadow:var(--shadow)}
+select.who{width:auto;max-width:130px;font-size:12px;padding:2px 4px;min-height:28px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.feedback,.today{display:none}}
+.whatsnew{display:block;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}.whatsnew summary{cursor:pointer}

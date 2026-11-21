@@ -58,6 +58,11 @@ function Guide({ v, record }: { v: DestView; record?: DestRecord }) {
   const ts = tripList(trips);
   const trip = (state.trip && trips[state.trip]) || ts.find((t) => t.dests.includes(v.key)) || null;
   const tab = state.tab;
+  // Personal needs on the selected trip set sensible defaults (the user can still change them).
+  useEffect(() => {
+    if (trip?.needs?.wheelchair && state.filters.wheelchair === undefined) set({ filters: { wheelchair: true } });
+  }, [trip?.id, trip?.needs?.wheelchair]); // eslint-disable-line react-hooks/exhaustive-deps
+  const vegHint = !!(trip?.needs?.veg || trip?.needs?.jain) && isFoodTab(tab) && !(state.filters.q || '').toLowerCase().includes('veg');
 
   return (
     <>
@@ -91,6 +96,7 @@ function Guide({ v, record }: { v: DestView; record?: DestRecord }) {
           <p>{v.curated ? `The hand-written ${v.name} guide is always available.` : 'Saved places in your trips still work.'} {v.curated && <Link to={`/destinations/${v.key}`}>Open the guide</Link>}</p>
         </div>
       )}
+      {vegHint && <div className="banner"><span className="small">This trip eats {trip?.needs?.jain ? 'Jain' : 'vegetarian'}.</span><button type="button" className="btn sm" onClick={() => set({ filters: { q: trip?.needs?.jain ? 'jain' : 'pure vegetarian' } })}>Show {trip?.needs?.jain ? 'Jain' : 'pure vegetarian'} places</button></div>}
       {tab === 'areas' ? <AreasTab v={v} trip={trip} onGo={(t, area) => set({ tab: t, inArea: area })} />
         : live !== 'live' && v.curated ? <CuratedTab v={v} tab={tab} trip={trip} />
         : <PlacesTab key={tab + (state.inArea || '')} v={v} record={record} trip={trip} state={state} set={set} />}

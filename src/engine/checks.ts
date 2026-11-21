@@ -5,6 +5,7 @@ import { inrOf } from './currency';
 import { visitFits, type Period } from './hours';
 import { dayEndpoint } from './stays';
 import { effectiveBudget, isAuto } from './budget';
+import { extraDayChecks, type DayWeather } from './extras';
 import { destView } from './dest';
 import { seasonOf } from './season';
 import { geo, km, nnKm, pathKm, travelMin } from './geo';
@@ -23,6 +24,8 @@ export interface CheckCtx {
   /** live travel minutes for consecutive blocks, keyed "fromId>toId" */
   travel?: Record<string, number | undefined>;
   legacyOnly?: boolean;
+  /** Forecast per day index (Open-Meteo), when the trip is within 16 days */
+  weather?: Record<number, DayWeather | undefined>;
 }
 
 /** Thresholds for the newer checks (documented on the About page). */
@@ -142,7 +145,7 @@ export function analyzeDay(t: Trip, di: number, ctx: CheckCtx = {}): Warning[] {
   if (t.plan.length > 2 && !isEdge && actMin < 120 && acts.length) {
     W.push({ lvl: 'tip', k: 'light', title: `${N} is light`, body: `Only ${hm(actMin)} planned. Good for rest, or pull something from your wishlist.`, fix: t.wish.length ? { l: 'Open wishlist', a: 'ptab', v: 'wish' } : null });
   }
-  if (!ctx.legacyOnly) W.push(...extendedDayChecks(t, di, ctx, st));
+  if (!ctx.legacyOnly) W.push(...extendedDayChecks(t, di, ctx, st), ...extraDayChecks(t, di, ctx.weather?.[di]));
   return W;
 }
 

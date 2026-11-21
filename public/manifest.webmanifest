@@ -1,0 +1,15 @@
+{
+  "name": "Trip Architect",
+  "short_name": "Trips",
+  "description": "Plan realistic trips: itinerary, map, budget, stays, expenses and packing.",
+  "start_url": "/trips",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6efe3",
+  "theme_color": "#1f4d3a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

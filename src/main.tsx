@@ -25,6 +25,23 @@ new MutationObserver(() => {
   }
 }).observe(document, { childList: true, subtree: true });
 
+// Installable app: cache the app shell so trips open offline (production builds only).
+const deployed = import.meta.env.PROD && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+if (deployed && 'serviceWorker' in navigator) {
+  addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').then(() => {
+      // Warm the cache with the trip screens (loaded on demand) so they open offline later.
+      const warm = () => { void import('./pages/trip/TripPage'); void import('./pages/trip/Studio'); void import('./pages/trip/TripMap'); void import('./pages/Destination'); };
+      if ('requestIdleCallback' in window) requestIdleCallback(warm); else setTimeout(warm, 3000);
+    }).catch(() => {});
+  });
+}
+// Vercel Web Analytics (cookie-free page views) and, only when a DSN is set, Sentry error reports.
+if (deployed) void import('@vercel/analytics').then((m) => m.inject({ mode: 'production' })).catch(() => {});
+if (import.meta.env.VITE_SENTRY_DSN) {
+  void import('@sentry/react').then((S) => S.init({ dsn: import.meta.env.VITE_SENTRY_DSN, tracesSampleRate: 0, sendDefaultPii: false, environment: import.meta.env.MODE })).catch(() => {});
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
