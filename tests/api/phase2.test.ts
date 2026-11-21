@@ -71,6 +71,7 @@ describe('field masks (every change here changes the Google bill)', () => {
         "nearbyBasic": "places.id,places.displayName,places.types,places.primaryType,places.location,places.googleMapsUri,places.shortFormattedAddress,places.businessStatus",
         "routes": "routes.duration,routes.distanceMeters",
         "search": "places.id,places.displayName,places.types,places.primaryType,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours.openNow,places.regularOpeningHours.periods,places.accessibilityOptions.wheelchairAccessibleEntrance,places.googleMapsUri,places.addressComponents,places.shortFormattedAddress,places.businessStatus,nextPageToken",
+        "transport": "places.id,places.displayName,places.location,places.types",
       }
     `);
   });

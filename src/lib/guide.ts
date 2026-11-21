@@ -165,3 +165,15 @@ export function guideParams(s: GuideState): URLSearchParams {
 }
 
 export const toGuidePlace = (p: ApiPlace, rank: number, foundIn?: string): GuidePlace => ({ ...p, rank, foundIn });
+
+export interface TransportHub { id: string; name: string; location?: { lat: number; lng: number } }
+/** Main railway stations and airports near a destination (only when a hotel comparison is open). */
+export function useTransport(center: { lat: number; lng: number } | null, enabled: boolean) {
+  const live = useLiveStatus((s) => s.state === 'live');
+  return useQuery({
+    queryKey: ['transport', center ? `${center.lat.toFixed(3)},${center.lng.toFixed(3)}` : ''],
+    enabled: live && enabled && !!center,
+    queryFn: ({ signal }) => apiPost<{ stations: TransportHub[]; airports: TransportHub[] }>('/api/places/transport', { center }, signal),
+    staleTime: Infinity,
+  });
+}

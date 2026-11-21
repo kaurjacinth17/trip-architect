@@ -139,3 +139,30 @@ Judgement calls made while implementing the upgrade, so they can be reviewed:
   are passed for the origin and destination when known, and for waypoints only when every waypoint has one (Google
   requires the two lists to match).
 - **Test fix:** two tests depended on today's date (the sample trip starts 21 days from today); they now pin the date.
+
+### Phase 6 notes
+
+- **Night ranges.** A stay can be set for nights X–Y ("Set as my stay"; night 1 is the night after Day 1). That adds
+  a locked Check-in block (the generator's "Arrive and check in" block when it's on that day, else 2 PM) and a locked
+  Check-out block (11 AM the day after the last night). Changing the nights moves them; clearing the nights or
+  deleting the stay removes them (the arrival block goes back to how it was). Setting a second hotel for overlapping
+  nights replaces the first, unless the first is booked. The blocks carry the hotel's place ID and its ≤30-day
+  coordinates, so they follow the same refresh, purge and share-link rules as other Google places; they are not sent
+  for opening hours.
+- **Start and end points.** A day starts at the stay for the night before it and ends at the stay for its own night,
+  so a change-over day starts at one hotel and ends at the next. Stays without a night range behave as before
+  (dates, then the destination's booked or shortlisted stay).
+- **Auto budget lines.** Stay = night by night: booked stays covering the night; else your stay for that night; else
+  the cheapest Shortlisted stay with a price; else the destination's planning estimate (labelled), else nothing.
+  Price × rooms (rooms default to one per two travellers and can be changed per stay). With no stays saved, the line
+  equals the estimate the trip was created with. Activities = entry fees × travellers. "How it's worked out" shows
+  the breakdown; ✎ switches a line to Manual (starting from the current figure); "Back to auto" resets it.
+- **Migration (schema v3).** Existing trips keep their typed Stay and Activities figures (Manual), so nothing jumps.
+  New trips start Auto. Files and share links without the field are treated as Manual.
+- **"Use in budget" is gone.** Prices are only ever typed by the user. "Check prices" opens plain searches on Google
+  Hotels, Booking.com, Agoda and Expedia with the hotel, city, dates, adults and rooms filled in. Google Hotels has no
+  documented date parameters, so the dates go into its search text and it may ask for them again.
+- **Hotel compare (up to 4)** in the City Guide's Hotels tab: Google rating and reviews, area, average straight-line
+  distance to your plan in that destination (or to the centre), nearest main railway station and airport (two Nearby
+  Search Pro calls when the comparison opens, cached for the session), your price and notes if saved, and Check
+  prices links.

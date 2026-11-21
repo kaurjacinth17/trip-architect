@@ -10,7 +10,7 @@ import { purgeExpiredCoords, stripLiveNames } from '../engine/coords';
 import { clone, uid } from '../engine/util';
 
 export const STORAGE_KEY = 'trip-architect-v1';
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const UNDO_LIMIT = 60;
 
 export type Weights = Record<FactorKey | 'season', number>;
@@ -85,6 +85,11 @@ export function upgradeTripV2(t: Trip): Trip {
   };
 }
 
+/** v2 → v3: Stay and Activities budget lines can follow the plan. Existing trips keep their typed figures (manual). */
+export function upgradeTripV3(t: Trip): Trip {
+  return { ...t, budgetMode: { stay: t.budgetMode?.stay || 'manual', act: t.budgetMode?.act || 'manual' } };
+}
+
 export function migrate(persisted: unknown, version: number): Persisted {
   const p = (persisted || {}) as Partial<Persisted>;
   const trips: Record<string, Trip> = {};
@@ -92,13 +97,18 @@ export function migrate(persisted: unknown, version: number): Persisted {
     // v0: the single-file prototype. Normalise every trip but keep ids so links still work.
     for (const t of Object.values(p.trips || {})) {
       try {
-        const n = upgradeTripV2(normaliseTrip(t, { keepId: true }));
+        const n = upgradeTripV3(upgradeTripV2(normaliseTrip(t, { keepId: true })));
         trips[n.id] = n;
       } catch { /* drop unreadable trips */ }
     }
     return { trips, compare: { ...DEFAULT_COMPARE, ...(p.compare || {}) } };
   }
-  for (const [id, t] of Object.entries(p.trips || {})) trips[id] = version < 2 ? upgradeTripV2(t) : t;
+  for (const [id, t0] of Object.entries(p.trips || {})) {
+    let t = t0;
+    if (version < 2) t = upgradeTripV2(t);
+    if (version < 3) t = upgradeTripV3(t);
+    trips[id] = t;
+  }
   return { trips, compare: { ...DEFAULT_COMPARE, ...(p.compare || {}) } };
 }
 

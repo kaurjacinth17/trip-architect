@@ -17,7 +17,7 @@ export function useCheckCtx(t: Trip | undefined, opts: { day: number; itinerary:
   const gids = useMemo(() => (t ? tripGids(t) : []), [t]);
   const lites = usePlaceLites(gids);
   const day = t?.plan[Math.min(opts.day, (t?.plan.length || 1) - 1)];
-  const dayGids = useMemo(() => [...new Set((day?.items || []).map((x) => x.gid).filter(Boolean) as string[])], [day]);
+  const dayGids = useMemo(() => [...new Set((day?.items || []).filter((x) => !x.stayRef).map((x) => x.gid).filter(Boolean) as string[])], [day]);
 
   const hoursQ = useQueries({
     queries: dayGids.map((id) => ({

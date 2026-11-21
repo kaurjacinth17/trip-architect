@@ -29,7 +29,8 @@ test('Jodhpur hotels: 4.5+ in one area, shareable URL, set one as the stay', asy
   await page.getByRole('combobox', { name: 'Sort' }).selectOption('rating');
   await expect(page.locator('.pcard').first()).toContainText('Gamma Stay (fixture)');
   await page.locator('.pcard', { hasText: 'Haveli Alpha' }).getByRole('button', { name: 'Set as my stay' }).click();
-  await expect(page.locator('.toast')).toContainText('Added to stays in Jaipur getaway');
+  await page.getByRole('dialog').getByRole('button', { name: /^Set nights/ }).click();
+  await expect(page.locator('.toast')).toContainText('Haveli Alpha (fixture) is your stay for nights 1–3');
   await page.goto('/trips/sample-jaipur/stays');
   await expect(page.getByText('Haveli Alpha (fixture)')).toBeVisible(); // name shown live
   const stored = await page.evaluate(() => localStorage.getItem('trip-architect-v1') || '');

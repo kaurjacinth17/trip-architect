@@ -218,6 +218,7 @@ function DayRail({ t, A, di, ind }: { t: Trip; A: TripAnalysis; di: number; ind:
 function Block({ t, x, flagged, ind, onEdit, selected, selectMode, onSelect }: { t: Trip; x: Item; flagged: boolean; ind: Indicator; onEdit: () => void; selected: boolean; selectMode: boolean; onSelect: (e: { shiftKey: boolean }) => void }) {
   const cat = CATS[x.cat] || CATS.custom;
   const p = x.pid ? PL[x.pid] : undefined;
+  const stayName = x.stayRef ? t.stays.find((s) => s.id === x.stayRef!.id)?.name : undefined;
   const drag = useDraggable({ id: 'item:' + x.id, data: { k: 'item', id: x.id, title: x.t, col: cat[1] } satisfies DragData });
   const drop = useDroppable({ id: 'blk:' + x.id, data: { kind: 'blk', id: x.id } satisfies DropData });
   const over = ind.over === 'blk:' + x.id && !drag.isDragging;
@@ -250,7 +251,7 @@ function Block({ t, x, flagged, ind, onEdit, selected, selectMode, onSelect }: {
       <div className="row between" style={{ flexWrap: 'nowrap', alignItems: 'start' }}>
         <span className="row" style={{ gap: 8, flexWrap: 'nowrap', alignItems: 'start' }}>
           {selectMode && <input type="checkbox" checked={selected} onChange={() => onSelect({ shiftKey: false })} aria-label={`Select ${x.t}`} />}
-          <span className="bt">{x.locked && <span className="lockic" role="img" aria-label="Time locked" title="Time locked: never moved automatically">🔒 </span>}{x.t}</span>
+          <span className="bt">{x.locked && <span className="lockic" role="img" aria-label="Time locked" title="Time locked: never moved automatically">🔒 </span>}{x.t}{stayName && <span className="muted"> · {stayName}</span>}</span>
         </span>
         <span className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
           {x.booking?.status === 'booked' && <span className="tag f">Booked{x.booking.ref ? ` · ${x.booking.ref}` : ''}</span>}

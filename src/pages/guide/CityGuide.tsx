@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { GMap, hasGoogleMaps, type GPin } from '../../components/GMap';
 import { Modal } from '../../components/Modal';
+import { StayNightsDialog } from '../../components/StayNightsDialog';
 import { Missing } from '../../components/Shell';
 import { CATS } from '../../data/constants';
 import { CURATED_PLACE_IDS } from '../../data/curatedPlaceIds';
@@ -14,11 +15,13 @@ import { fmtDist, km } from '../../engine/geo';
 import { addLiveToDay, MEALS, stayFromLive, type MealKind } from '../../engine/livePool';
 import { applyFilters, badgesFor, mergeResults, sortPlaces, type GuidePlace, type SortKey } from '../../engine/placeFilters';
 import { categorise, isLodging } from '../../engine/placeTypes';
-import { dayCentre, startFor, travellers } from '../../engine/schedule';
+import { dayCentre, isAct, startFor, travellers } from '../../engine/schedule';
+import { defaultNights, priceLinks, roomsFor, setStayNights, stayDates } from '../../engine/stays';
 import { dayDate, fmtD, fmtT, fromHHMM, toHHMM } from '../../engine/time';
 import type { DestRecord, Trip } from '../../engine/types';
+import { inr } from '../../engine/util';
 import { mut } from '../../lib/actions';
-import { GUIDE_TABS, guideParams, isFoodTab, parseGuide, toGuidePlace, useAllAreas, useGuideList, usePhotoUri, usePlaceDetails, type ApiPlace, type GuideState, type GuideTab, type PlacePhoto } from '../../lib/guide';
+import { GUIDE_TABS, guideParams, isFoodTab, parseGuide, toGuidePlace, useAllAreas, useGuideList, usePhotoUri, usePlaceDetails, useTransport, type ApiPlace, type GuideState, type GuideTab, type PlacePhoto } from '../../lib/guide';
 import { useAreas } from '../../lib/live';
 import { useLiveStatus } from '../../lib/liveStatus';
 import { useTitle } from '../../lib/hooks';
@@ -105,6 +108,10 @@ function PlacesTab({ v, record, trip, state, set }: { v: DestView; record?: Dest
   const [action, setAction] = useState<{ p: GuidePlace; meal?: MealKind } | null>(null);
   const [veg, setVeg] = useState<Record<string, boolean | undefined>>({});
   const [showMap, setShowMap] = useState(false);
+  const [cmp, setCmp] = useState<GuidePlace[]>([]);
+  const [cmpOpen, setCmpOpen] = useState(false);
+  const [stayFor, setStayFor] = useState<GuidePlace | null>(null);
+  const toggleCmp = (p: GuidePlace) => setCmp((c) => (c.some((x) => x.id === p.id) ? c.filter((x) => x.id !== p.id) : c.length >= 4 ? c : [...c, p]));
   const f = state.filters;
   const attractions = tab === 'famous' || tab === 'todo';
 
@@ -175,7 +182,7 @@ function PlacesTab({ v, record, trip, state, set }: { v: DestView; record?: Dest
               active={hover === p.id || focus === p.id} onHover={setHover} trip={trip}
               onOpen={() => setOpen(p)} onAction={(meal) => setAction({ p, meal })} onMap={() => { setShowMap(true); setFocus(p.id); }}
               onWish={() => trip && mut(trip.id, (t) => { if (t.wish.some((w) => w.gid === p.id)) return false; t.wish.push(itemForWish(p, v.key)); if (record && !t.dests.includes(v.key)) { t.dests.push(v.key); t.destRecords = { ...(t.destRecords || {}), [v.key]: record }; } }, `Saved to the wishlist in ${trip.name}`, true)}
-              onStay={() => trip && mut(trip.id, (t) => { stayFromLive(t, p, v.key, record); }, `Added to stays in ${trip.name}. Enter the price you find.`, true)} />
+              onStay={() => trip && setStayFor(p)} comparing={cmp.some((x) => x.id === p.id)} cmpFull={cmp.length >= 4} onCompare={() => toggleCmp(p)} />
           ))}
           {list.hasNextPage && !r && (
             <div style={{ padding: 8 }}><button type="button" className="btn" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>{list.isFetchingNextPage ? 'Loading…' : 'Load more'}</button></div>
@@ -189,6 +196,22 @@ function PlacesTab({ v, record, trip, state, set }: { v: DestView; record?: Dest
           </div>
         )}
       </div>
+      {tab === 'hotels' && cmp.length > 0 && (
+        <div className="cmpbar" role="region" aria-label="Hotel comparison">
+          <span className="small"><b>{cmp.length} of 4</b> hotels to compare</span>
+          <button type="button" className="btn sm pri" disabled={cmp.length < 2} onClick={() => setCmpOpen(true)}>Compare {cmp.length}</button>
+          <button type="button" className="btn sm ghost" onClick={() => setCmp([])}>Clear</button>
+        </div>
+      )}
+      {cmpOpen && <CompareHotels v={v} trip={trip} hotels={cmp} onClose={() => setCmpOpen(false)} onStay={(p) => { setCmpOpen(false); if (trip) setStayFor(p); }} />}
+      {stayFor && trip && (
+        <StayNightsDialog t={trip} hotel={stayFor.name} initial={(() => { const s = trip.stays.find((x) => x.gid === stayFor.id); return s?.from != null && s.to != null ? [s.from, s.to] as [number, number] : defaultNights(trip, v.key); })()}
+          onClose={() => setStayFor(null)}
+          onApply={(a, b) => mut(trip.id, (t) => {
+            const s = t.stays.find((x) => x.gid === stayFor.id) || stayFromLive(t, stayFor, v.key, record);
+            setStayNights(t, s.id, a, b);
+          }, `${stayFor.name} is your stay for nights ${a + 1}–${b + 1}. Check-in and check-out are in the itinerary; enter the price you find in Stays.`, true)} />
+      )}
       {open && <DetailDrawer p={open} tab={tab} badges={badges.get(open.id)!} trip={trip} onClose={() => setOpen(null)} onVeg={(id, x) => setVeg((s) => ({ ...s, [id]: x }))}
         onAction={(meal) => { setAction({ p: open, meal }); setOpen(null); }} />}
       {action && trip && <AddToDayDialog trip={trip} p={action.p} meal={action.meal} destKey={v.key} record={record} day={state.day} onClose={() => setAction(null)} />}
@@ -304,9 +327,10 @@ function Filters({ trip, state, set, areaNames, tab }: { v: DestView; trip: Trip
 
 /* ---------------------------------------------------------------------------------------- place card */
 
-function PlaceCard({ p, n, tab, badges, dist, distFrom, active, onHover, onOpen, onAction, onMap, onWish, onStay, trip }: {
+function PlaceCard({ p, n, tab, badges, dist, distFrom, active, onHover, onOpen, onAction, onMap, onWish, onStay, trip, comparing, cmpFull, onCompare }: {
   p: GuidePlace; n: number; tab: GuideTab; badges: { mustSee: boolean; hiddenGem: boolean; editorsPick: boolean }; dist: number | null; distFrom: string; active: boolean;
   onHover: (id: string | null) => void; onOpen: () => void; onAction: (meal?: MealKind) => void; onMap: () => void; onWish: () => void; onStay: () => void; trip: Trip | null;
+  comparing?: boolean; cmpFull?: boolean; onCompare?: () => void;
 }) {
   const { cat } = categorise(p.primaryType, p.types);
   const food = isFoodTab(tab);
@@ -331,7 +355,10 @@ function PlaceCard({ p, n, tab, badges, dist, distFrom, active, onHover, onOpen,
         </div>
         <div className="row pacts" style={{ gap: 4, marginTop: 6 }}>
           {tab === 'hotels'
-            ? <button type="button" className="btn sm pri" disabled={!trip} onClick={onStay}>Set as my stay</button>
+            ? <>
+              <button type="button" className="btn sm pri" disabled={!trip} onClick={onStay}>Set as my stay…</button>
+              <label className="chip" style={{ gap: 6 }}><input type="checkbox" checked={!!comparing} disabled={!comparing && cmpFull} onChange={onCompare} aria-label={`Compare ${p.name}`} />Compare</label>
+            </>
             : <button type="button" className="btn sm pri" onClick={() => onAction()}>Add to day…</button>}
           {food && (['breakfast', 'lunch', 'dinner'] as MealKind[]).map((m) => <button key={m} type="button" className="btn sm" onClick={() => onAction(m)} aria-label={`Add ${p.name} as ${m}`}>{MEALS[m].label}</button>)}
           <button type="button" className="btn sm" disabled={!trip} onClick={onWish} aria-label={`Save ${p.name} to wishlist`}>♡ Save</button>
@@ -340,6 +367,51 @@ function PlaceCard({ p, n, tab, badges, dist, distFrom, active, onHover, onOpen,
         </div>
       </div>
     </article>
+  );
+}
+
+/* ------------------------------------------------------------------------------------- hotel compare */
+
+function CompareHotels({ v, trip, hotels, onClose, onStay }: { v: DestView; trip: Trip | null; hotels: GuidePlace[]; onClose: () => void; onStay: (p: GuidePlace) => void }) {
+  const tq = useTransport(v.center, true);
+  const plan = trip ? trip.plan.filter((d) => d.dest === v.key).flatMap((d) => d.items).filter((x) => isAct(x) && x.lat != null && x.lng != null) : [];
+  const toPlan = (p: GuidePlace) => (p.location && plan.length ? plan.reduce((s, x) => s + (km(p.location!, x) || 0), 0) / plan.length : null);
+  const nearest = (p: GuidePlace, list?: { name: string; location?: { lat: number; lng: number } }[]) => {
+    const c = (list || []).filter((h) => h.location && p.location).map((h) => ({ h, d: km(p.location!, h.location!)! })).sort((a, b) => a.d - b.d)[0];
+    return c ? `${fmtDist(c.d)} to ${c.h.name}` : tq.isLoading ? 'Loading…' : '—';
+  };
+  const saved = (p: GuidePlace) => trip?.stays.find((s) => s.gid === p.id);
+  const rows: [string, (p: GuidePlace) => React.ReactNode][] = [
+    ['Google rating', (p) => (p.rating != null ? `★ ${p.rating.toFixed(1)}` : '—')],
+    ['Reviews', (p) => (p.userRatingCount != null ? p.userRatingCount.toLocaleString('en-IN') : '—')],
+    ['Area', (p) => p.areaHint || '—'],
+    ['Distance to your plan', (p) => { const d = toPlan(p); return d != null ? `${fmtDist(d)} on average` : p.location && v.center ? `${fmtDist(km(p.location, v.center)!)} from the centre` : '—'; }],
+    ['Railway station', (p) => nearest(p, tq.data?.stations)],
+    ['Airport', (p) => nearest(p, tq.data?.airports)],
+    ['Your price per night', (p) => { const s = saved(p); return s?.price ? inr(s.price) : s ? 'Not entered yet' : 'Not saved yet'; }],
+    ['Your notes', (p) => saved(p)?.notes || '—'],
+    ['Check prices', (p) => {
+      const s = saved(p);
+      const dates = trip && s ? stayDates(trip, s) : null;
+      const n = trip ? travellers(trip) : 2;
+      return <span className="grid" style={{ gap: 2 }}>{priceLinks({ hotel: p.name, city: v.name, checkin: dates?.checkin, checkout: dates?.checkout, adults: n, rooms: trip ? roomsFor(trip, s) : 1 }).map((l) => <a key={l.site} className="tiny" href={l.url} target="_blank" rel="noopener noreferrer">{l.site}</a>)}</span>;
+    }],
+  ];
+  return (
+    <Modal title="Compare hotels" onClose={onClose} wide>
+      <div className="row between"><h2>Compare hotels</h2><GoogleAttribution /></div>
+      <div className="scroll gbox">
+        <table className="cmp">
+          <thead><tr><th><span className="vh">Detail</span></th>{hotels.map((p) => <th key={p.id} scope="col">{p.name}</th>)}</tr></thead>
+          <tbody>
+            {rows.map(([l, f]) => <tr key={l}><th scope="row">{l}</th>{hotels.map((p) => <td key={p.id}>{f(p)}</td>)}</tr>)}
+            <tr><th scope="row"><span className="vh">Actions</span></th>{hotels.map((p) => <td key={p.id}><button type="button" className="btn sm pri" disabled={!trip} onClick={() => onStay(p)} aria-label={`Set ${p.name} as my stay`}>Set as my stay…</button></td>)}</tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="tiny muted">Ratings and reviews from Google Maps. Distances are straight-line. No live room prices exist here: use Check prices, then type what you find in the Stays tab.</p>
+      <div className="row"><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
+    </Modal>
   );
 }
 

@@ -83,6 +83,8 @@ export interface Item {
   booking?: { status: 'none' | 'needed' | 'booked'; ref?: string };
   link?: string;
   tags?: string[];
+  /** Check-in / check-out block created by "Set as my stay" (locked; removed or moved when the stay's nights change) */
+  stayRef?: { id: string; kind: 'in' | 'out' };
   t: string;
   cat: Cat;
   /** start, minutes after midnight */
@@ -153,8 +155,14 @@ export interface Stay {
   dest: string;
   lat: number | null;
   lng: number | null;
+  /** Price per room per night, INR, as typed by the user (no live room prices exist) */
   price: number;
   nights: number;
+  /** Night range set with "Set as my stay": night k is the night after Day k+1 (0-based day index k) */
+  from?: number;
+  to?: number;
+  /** Rooms booked (default: one per two travellers) */
+  rooms?: number;
   checkin: string;
   checkout: string;
   rating: number;
@@ -173,6 +181,7 @@ export interface PackItem {
 }
 
 export type Budget = Record<BudgetKey, number>;
+export type AutoKey = 'stay' | 'act';
 
 export interface Trip {
   id: string;
@@ -198,6 +207,8 @@ export interface Trip {
   touched?: boolean;
   /** Non-curated destinations used by this trip, keyed like `dests` entries ("g:…" or "c:…"). */
   destRecords?: Record<string, DestRecord>;
+  /** Budget lines that follow the plan automatically. Absent = manual (trips from before v3 keep their figures). */
+  budgetMode?: Partial<Record<AutoKey, 'auto' | 'manual'>>;
   /** Default currency for entering expenses (INR unless the trip is abroad). Totals are always INR. */
   currency?: string;
 }

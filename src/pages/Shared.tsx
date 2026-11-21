@@ -4,7 +4,7 @@ import { sceneFor } from '../lib/destScene';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Scene } from '../components/Scene';
 import { BCATS, CATS, DAYC, paceOf } from '../data/constants';
-import { plannedTotal } from '../engine/budget';
+import { effectiveBudget, plannedTotal } from '../engine/budget';
 import { geo } from '../engine/geo';
 import { travellers } from '../engine/schedule';
 import { decodeShare, normaliseTrip } from '../engine/share';
@@ -123,7 +123,7 @@ export default function Shared() {
           <table>
             <thead><tr><th>Category</th><th className="n">Planned</th></tr></thead>
             <tbody>
-              {BCATS.map(([k, l]) => <tr key={k}><td>{l}</td><td className="n">{inr(t.budget[k])}</td></tr>)}
+              {BCATS.map(([k, l]) => <tr key={k}><td>{l}</td><td className="n">{inr(effectiveBudget(t)[k])}</td></tr>)}
               <tr><td><b>Total</b></td><td className="n"><b>{inr(planned)}</b></td></tr>
             </tbody>
           </table>

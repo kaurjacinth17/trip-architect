@@ -69,3 +69,24 @@ describe('POST /api/places/nearby', () => {
     expect((await nearby(req('atms', 50_000))).status).toBe(400);
   });
 });
+
+import { POST as transport } from '../../api/places/transport';
+describe('POST /api/places/transport (Phase 6)', () => {
+  it('two Nearby Search Pro calls (stations, airports) with the transport mask; IDs, names and coordinates only', async () => {
+    const calls: { mask: string | null; body: Record<string, unknown> }[] = [];
+    server.use(http.post(/places\.googleapis\.com\/v1\/places:searchNearby$/, async ({ request }) => {
+      const body = (await request.json()) as { includedTypes: string[] };
+      calls.push({ mask: request.headers.get('x-goog-fieldmask'), body });
+      const st = body.includedTypes[0] === 'train_station';
+      return HttpResponse.json({ places: [{ id: st ? 'ChIJTESTstation00000001' : 'ChIJTESTairport00000001', displayName: { text: st ? 'Junction' : 'Airport' }, location: { latitude: 26.2, longitude: 73 }, types: body.includedTypes, rating: 4.9 }] });
+    }));
+    const r = await transport(new Request('http://localhost/api/places/transport', { method: 'POST', body: JSON.stringify({ center: { lat: 26.29, lng: 73.02 } }) }));
+    const b = await r.json();
+    expect(b).toEqual({ stations: [{ id: 'ChIJTESTstation00000001', name: 'Junction', location: { lat: 26.2, lng: 73 } }], airports: [{ id: 'ChIJTESTairport00000001', name: 'Airport', location: { lat: 26.2, lng: 73 } }] });
+    expect(calls.map((c) => c.mask)).toEqual([MASKS.transport, MASKS.transport]);
+    expect(MASKS.transport).toBe('places.id,places.displayName,places.location,places.types');
+    expect(calls[1].body).toMatchObject({ includedTypes: ['airport'], maxResultCount: 3, locationRestriction: { circle: { radius: 50000 } } });
+    expect(JSON.stringify(b)).not.toContain(KEY);
+    expect((await transport(new Request('http://localhost/api/places/transport', { method: 'POST', body: JSON.stringify({ center: { lat: 200, lng: 0 } }) }))).status).toBe(400);
+  });
+});

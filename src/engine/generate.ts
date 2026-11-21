@@ -209,6 +209,7 @@ export function buildTrip(o: BuildInput): Trip {
     plan: [], wish: [], budget: { travel: 0, stay: 0, food: 0, local: 0, act: 0, shop: 0, misc: 0 },
     expenses: [], stays: [], pack: [], notes: '', created: now, updated: now,
     destRecords: o.destRecords || {}, currency: o.currency || 'INR',
+    budgetMode: { stay: 'auto', act: 'auto' },
   };
   const g = genPlan({ ...t, pools: o.pools });
   t.plan = g.plan;

@@ -43,6 +43,13 @@ export async function mockApi(page: Page, opts: MockOptions = {}) {
       const list = (b.layer === 'cafes' ? googleSearch.cafes : b.layer === 'restaurants' ? googleSearch.restaurants : { places: [] }).places as GPlace[];
       return json(route, { places: list.map((x, i) => mapPlace({ ...x, location: { latitude: b.center.lat + 0.002 * (i + 1), longitude: b.center.lng } })) });
     }
+    if (p === '/api/places/transport') {
+      const b = route.request().postDataJSON() as { center: { lat: number; lng: number } };
+      return json(route, {
+        stations: [{ id: 'ChIJTESTstation00000001', name: 'Junction station (fixture)', location: { lat: b.center.lat + 0.01, lng: b.center.lng } }],
+        airports: [{ id: 'ChIJTESTairport00000001', name: 'Airport (fixture)', location: { lat: b.center.lat - 0.05, lng: b.center.lng + 0.02 } }],
+      });
+    }
     if (p === '/api/places/hours') {
       // Every fixture place opens 10:00–17:00 daily, except it's closed on Mondays
       const periods = [0, 2, 3, 4, 5, 6].map((d) => ({ open: d * 1440 + 600, close: d * 1440 + 1020 }));

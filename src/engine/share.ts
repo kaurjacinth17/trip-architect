@@ -4,7 +4,7 @@ import { BCATS, PACE } from '../data/constants';
 import { D } from '../data/destinations';
 import { stripGoogleCoords } from './coords';
 import { routeName } from './dest';
-import { plannedTotal } from './budget';
+import { effectiveBudget, plannedTotal } from './budget';
 import { travellers } from './schedule';
 import { dayDate, fmtD, fmtT, hm } from './time';
 import type { Trip } from './types';
@@ -46,7 +46,7 @@ export function printHTML(t: Trip): string {
   const planned = plannedTotal(t);
   return `<div class="printv"><h1>${esc(t.name)}</h1><p>${esc(route(t))} · ${plural(t.plan.length, 'day')} · ${plural(n, 'traveller')}: ${t.travelers.map(esc).join(', ')}${t.start ? ` · ${range(t)}` : ''}</p>
  ${t.plan.map((d, i) => `<h2 style="margin-top:22px;font-size:20px">Day ${i + 1}${dayDate(t, i) ? ' · ' + fmtD(dayDate(t, i)) : ''}${d.label ? ' — ' + esc(d.label) : ''}</h2><table><tbody>${[...d.items].sort((a, b) => a.s - b.s).map((x) => `<tr><td style="width:120px;white-space:nowrap"><b>${fmtT(x.s)}</b><br><span style="font-size:12px;color:#666">${hm(x.d)}</span></td><td><b>${esc(x.t)}</b>${x.area ? ` · ${esc(x.area)}` : ''}${x.c ? ` · ${inr(x.c)} pp` : ''}${x.n ? `<br><span style="font-size:13px">${esc(x.n)}</span>` : ''}</td></tr>`).join('') || '<tr><td colspan="2">Free day</td></tr>'}</tbody></table>`).join('')}
- <h2 style="margin-top:26px;font-size:20px">Budget</h2><table><tbody>${BCATS.map(([k, l]) => `<tr><td>${l}</td><td class="n" style="text-align:right">${inr(t.budget[k])}</td></tr>`).join('')}<tr><td><b>Total planned</b></td><td style="text-align:right"><b>${inr(planned)}</b> (${inr(planned / n)} pp)</td></tr></tbody></table>
+ <h2 style="margin-top:26px;font-size:20px">Budget</h2><table><tbody>${BCATS.map(([k, l]) => `<tr><td>${l}</td><td class="n" style="text-align:right">${inr(effectiveBudget(t)[k])}</td></tr>`).join('')}<tr><td><b>Total planned</b></td><td style="text-align:right"><b>${inr(planned)}</b> (${inr(planned / n)} pp)</td></tr></tbody></table>
  ${t.stays.length ? `<h2 style="margin-top:26px;font-size:20px">Stays</h2><table><tbody>${t.stays.map((s) => `<tr><td><b>${esc(s.name)}</b> · ${esc(s.area)}</td><td>${esc(s.status)}</td><td style="text-align:right">${inr(s.price)}/night × ${s.nights}</td></tr>`).join('')}</tbody></table>` : ''}
  <h2 style="margin-top:26px;font-size:20px">Packing list</h2><p style="columns:2;font-size:14px">${t.pack.map((x) => `${x.done ? '☑' : '☐'} ${esc(x.name)}${x.qty > 1 ? ' ×' + x.qty : ''}`).join('<br>')}</p>
  ${t.notes ? `<h2 style="margin-top:26px;font-size:20px">Notes</h2><p style="white-space:pre-wrap">${esc(t.notes)}</p>` : ''}<p style="margin-top:26px;font-size:12px;color:#666">Made with Trip Architect. Times, distances and costs are planning estimates.</p></div>`;
@@ -94,6 +94,7 @@ export function normaliseTrip(input: unknown, opts: { keepId?: boolean } = {}): 
     plan: t.plan.map((d) => ({ dest: d.dest, label: d.label || '', items: Array.isArray(d.items) ? d.items : [] })),
     wish: t.wish ?? [],
     budget: { travel: 0, stay: 0, food: 0, local: 0, act: 0, shop: 0, misc: 0, ...(t.budget || {}) },
+    ...(t.budgetMode ? { budgetMode: { ...(t.budgetMode.stay ? { stay: t.budgetMode.stay } : {}), ...(t.budgetMode.act ? { act: t.budgetMode.act } : {}) } } : {}),
     expenses: t.expenses ?? [],
     stays: t.stays ?? [],
     pack: t.pack ?? [],

@@ -15,6 +15,8 @@ export const MASKS = {
   nearby: 'places.id,places.displayName,places.types,places.primaryType,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours.openNow,places.googleMapsUri,places.shortFormattedAddress,places.businessStatus',
   /** Nearby Search Pro: practical layers (ATMs, pharmacies) without ratings */
   nearbyBasic: 'places.id,places.displayName,places.types,places.primaryType,places.location,places.googleMapsUri,places.shortFormattedAddress,places.businessStatus',
+  /** Nearby Search Pro: main railway station and airport near a destination (hotel compare distances) */
+  transport: 'places.id,places.displayName,places.location,places.types',
   /** Place Details Enterprise: the detail drawer */
   details: 'id,displayName,formattedAddress,location,types,primaryType,rating,userRatingCount,priceLevel,regularOpeningHours,currentOpeningHours.openNow,websiteUri,nationalPhoneNumber,internationalPhoneNumber,googleMapsUri,photos,accessibilityOptions,businessStatus',
   /** Place Details Enterprise + Atmosphere: the drawer for restaurants and cafés (adds veg-friendly and summary) */

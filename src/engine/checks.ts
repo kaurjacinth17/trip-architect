@@ -4,6 +4,7 @@ import { PL } from '../data/destinations';
 import { inrOf } from './currency';
 import { visitFits, type Period } from './hours';
 import { dayEndpoint } from './stays';
+import { effectiveBudget, isAuto } from './budget';
 import { destView } from './dest';
 import { seasonOf } from './season';
 import { geo, km, nnKm, pathKm, travelMin } from './geo';
@@ -149,17 +150,18 @@ export function analyzeTrip(t: Trip, ctx: CheckCtx = {}): TripAnalysis {
   const W: Warning[] = [];
   const n = travellers(t);
   const days = t.plan.map((_, i) => analyzeDay(t, i, ctx));
-  const planned = sum(BCATS, ([k]) => t.budget[k]);
+  const B = effectiveBudget(t); // Auto lines follow the plan (stays, entry fees); manual lines are as typed
+  const planned = sum(BCATS, ([k]) => B[k]);
   if (t.budgetTotal && planned > t.budgetTotal) {
     W.push({ lvl: 'alert', k: 'budget', title: 'Planned costs exceed your budget', body: `Categories add up to ${inr(planned)} against a budget of ${inr(t.budgetTotal)}: ${inr(planned - t.budgetTotal)} over.`, tab: 'budget' });
   }
   const spent = (k: string) => sum(t.expenses.filter((e) => e.cat === k), inrOf);
   for (const [k, l] of BCATS) {
     const s = spent(k);
-    if (t.budget[k] > 0 && s > t.budget[k]) W.push({ lvl: 'caution', k: 'cat', title: `${l} is over plan`, body: `Spent ${inr(s)} of ${inr(t.budget[k])}.`, tab: 'budget' });
+    if (B[k] > 0 && s > B[k]) W.push({ lvl: 'caution', k: 'cat', title: `${l} is over plan`, body: `Spent ${inr(s)} of ${inr(B[k])}.`, tab: 'budget' });
   }
   const actCost = sum(t.plan.flatMap((d) => d.items.filter(isAct)), (x) => x.c) * n;
-  if (actCost > (t.budget.act || 0) * 1.05) {
+  if (!isAuto(t, 'act') && actCost > (t.budget.act || 0) * 1.05) {
     W.push({ lvl: 'caution', k: 'actcost', title: 'Itinerary costs more than the activities budget', body: `Entry fees and experiences in your plan add up to about ${inr(actCost)} for ${plural(n, 'traveller')}; the activities budget is ${inr(t.budget.act)}.`, fix: { l: `Set activities budget to ${inr(r500(actCost + 249))}`, a: 'setAct', v: r500(actCost + 249) } });
   }
   if (t.start) {

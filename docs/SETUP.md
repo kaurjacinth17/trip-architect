@@ -56,6 +56,7 @@ billed at the **Enterprise** SKU.
 | Text Search Pro | 35,000 | 1,100 | searches without ratings |
 | **Text Search Enterprise** | **7,000** | **220** | City Guide lists with ratings, reviews, price, hours |
 | **Nearby Search Enterprise** | **7,000** | **220** | map layers (restaurants, cafés…) |
+| Nearby Search Pro | 35,000 | 1,100 | ATM and pharmacy layers; nearest station and airport in the hotel comparison (2 calls) |
 | **Place Details Enterprise** | **7,000** | **220** | detail drawer (weekday hours, website, phone) |
 | **Place Details Enterprise + Atmosphere** | **7,000** | **220** | veg-friendly, editorial summary |
 | **Place Details Photos** | **7,000** | **220** | each Google photo shown |
