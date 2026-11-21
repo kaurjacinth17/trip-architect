@@ -1,30 +1,34 @@
-// GET /api/places/cover?q=Rishikesh, Uttarakhand, India  A destination's Google place ID and one real photo for Explore
-// cards and destination pages. One Text Search Pro call (IDs and photo references only) and one Place Photos call.
-// The image is loaded by the browser from Google (never downloaded or re-hosted); the photographer is credited.
-// The answer is cached at the edge for a few hours so a busy Explore page stays inside the daily photo budget.
+// GET /api/places/cover?q=Rishikesh, Uttarakhand, India  A destination's OpenStreetMap ID (Photon) and a photo from
+// its Wikipedia article (Wikimedia Commons, credited with the photographer and licence). Edge-cached for a week.
 import { z } from 'zod';
 import { dedupe } from '../../_lib/dedupe.js';
-import { googlePlaces } from '../../_lib/google.js';
 import { handler, json } from '../../_lib/http.js';
-import { MASKS, type GPlace } from '../../_lib/places.js';
+import { commonsCredit, osmId, photon, sized, wikiSummary } from '../../_lib/osm.js';
+import { edgeCache } from '../../_lib/upstream.js';
 
 const Q = z.object({ q: z.string().trim().min(2).max(120), w: z.coerce.number().int().min(200).max(1200).default(800) });
 
+/** Wikipedia titles to try for "Name, State, Country": the name, then "Name, State". */
+export const titlesFor = (q: string) => {
+  const [name, state] = q.split(',').map((s) => s.trim());
+  const base = name.replace(/\s*\(.*\)$/, '');
+  return [...new Set([base, state ? `${base}, ${state}` : '', name].filter(Boolean))];
+};
+
 export const GET = handler({ methods: ['GET'], rateLimit: { bucket: 'cover', limit: 60, windowSec: 60 } }, async (_r, { url }) => {
   const q = Q.parse(Object.fromEntries(url.searchParams));
-  const key = `cover:${q.q.toLowerCase()}:${q.w}`;
-  const out = await dedupe(key, async () => {
-    const s = await googlePlaces<{ places?: GPlace[] }>({
-      path: 'places:searchText', fieldMask: MASKS.cover, sku: 'textSearchPro',
-      body: { textQuery: q.q, maxResultCount: 1, languageCode: 'en', regionCode: 'IN' },
-    });
-    const p = s.places?.[0];
-    const ph = p?.photos?.[0];
-    if (!p) return { id: null, uri: null, author: null };
-    if (!ph) return { id: p.id, uri: null, author: null };
-    const m = await googlePlaces<{ photoUri?: string }>({ path: ph.name + '/media', fieldMask: null, sku: 'placePhotos', query: { maxWidthPx: String(q.w), skipHttpRedirect: 'true' } });
-    const a = ph.authorAttributions?.[0];
-    return { id: p.id, uri: m.photoUri || null, author: a ? { name: a.displayName || 'Google Maps user', uri: a.uri || null } : null, mapsUri: ph.googleMapsUri || null, width: ph.widthPx || null, height: ph.heightPx || null };
+  const out = await dedupe(`cover:${q.q.toLowerCase()}:${q.w}`, async () => {
+    const [feats, ...wikis] = await Promise.all([photon(q.q, 1).catch(() => []), ...titlesFor(q.q).map((t) => wikiSummary(t).catch(() => null))]);
+    const f = feats[0];
+    const w = wikis.find((x) => x && x.type !== 'disambiguation' && (x.thumbnail || x.originalimage));
+    const img = w?.thumbnail?.source || w?.originalimage?.source;
+    const credit = img ? await commonsCredit(img) : null;
+    return {
+      id: f ? osmId(f.properties.osm_type, f.properties.osm_id) : null,
+      uri: img ? sized(img, q.w) : null,
+      author: credit ? { name: credit.name + (credit.licence ? ` (${credit.licence})` : ''), uri: credit.uri } : null,
+      mapsUri: w?.content_urls?.desktop?.page || null,
+    };
   });
-  return json(out, { cache: 'public, max-age=3600, s-maxage=21600, stale-while-revalidate=43200' });
+  return json(out, { cache: edgeCache(7 * 86400) });
 });

@@ -7,11 +7,11 @@ export, print and share options.
 
 > ChatGPT gives you answers. Trip Architect gives you a system to manage your trip.
 
-- Works with no keys at all (guest mode, trips in `localStorage`, 8 curated destinations). Live place data, maps,
-  photos and accounts switch on as you add keys: see **[docs/SETUP.md](docs/SETUP.md)**.
+- Needs no keys: maps and places come from open data (OpenStreetMap, Photon, Nominatim, Wikipedia). Accounts
+  (Supabase) are optional: see **[docs/SETUP.md](docs/SETUP.md)**.
 - Server code lives in `api/` (Vercel functions); `npm run dev` serves it locally too.
-- Vite + React 18 + TypeScript (strict), React Router, Zustand, TanStack Query, @dnd-kit, Google Maps
-  (`@vis.gl/react-google-maps`), zod, lz-string; Vercel functions in `api/`.
+- Vite + React 18 + TypeScript (strict), React Router, Zustand, TanStack Query, @dnd-kit, Leaflet +
+  OpenStreetMap, zod, lz-string; Vercel functions in `api/`.
 - Ported from the single-file prototype `trip-architect-reference.html` (see `PLAN.md` and `NOTES.md`).
 
 ## 1. Run it locally
@@ -121,13 +121,11 @@ the `DESTS` array:
 Then run `npm test`. The engine tests and the type checker will catch shape errors. (The parity test compares
 against the reference file's own data, so it only covers the original eight destinations.)
 
-## 5. Maps and live data: costs
+## 5. Maps and live data: free
 
-All maps are Google Maps (Maps JavaScript API, `VITE_GOOGLE_MAPS_BROWSER_KEY`); Google's terms require Places data
-on a map to be shown on a Google Map. Without the browser key the site shows lists with "Open in Google Maps" links
-instead of maps. Live place data (search, City Guide, nearby layers, opening hours) goes through the `/api`
-functions with the server key, under a daily budget per Google SKU that keeps each month inside the free usage.
-`docs/SETUP.md` has the numbers, the console steps and what happens when a budget is used up.
+Maps are OpenStreetMap (Leaflet). Live places (search, City Guide, hotels, nearby layers, opening hours) come from
+OpenStreetMap through Overpass, Photon and Nominatim, and photos from Wikipedia / Wikimedia Commons, all through the
+`/api` functions with edge caching. No keys, no bills. Open data has no star ratings or reviews.
 
 ## How it's built
 

@@ -79,7 +79,7 @@ test('bulk: ctrl-click two blocks, shift them 30 minutes later, then send to the
   expect((await titles(page)).map(clean)).not.toContain(name);
 });
 
-test('opening-hours check for a Google place, and live travel times when switched on', async ({ page }) => {
+test('opening-hours check for a place from OpenStreetMap', async ({ page }) => {
   await mockApi(page);
   await page.goto('/trips/sample-jaipur/itinerary');
   await page.getByRole('button', { name: /^Day 4/ }).click(); // Mon 14 Dec: fixture places are closed on Mondays
@@ -88,6 +88,5 @@ test('opening-hours check for a Google place, and live travel times when switche
   await page.getByRole('button', { name: 'Add Toorji Ka Jhalra stepwell' }).click();
   await page.getByRole('tab', { name: /Checks/ }).click();
   await expect(page.getByText('Toorji Ka Jhalra stepwell is closed on Mondays')).toBeVisible();
-  await page.getByLabel('Live travel times').check();
-  await expect(page.locator('.gap', { hasText: 'by road (Google Maps)' }).first()).toBeVisible();
+  await expect(page.getByLabel('Live travel times')).toHaveCount(0); // needed Google Routes; removed
 });

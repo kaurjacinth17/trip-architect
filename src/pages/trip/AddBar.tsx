@@ -190,7 +190,7 @@ function PlacePicker({ mode, t, di, v, at, onAdd }: { mode: 'search' | 'famous' 
         </div>
       )}
       <div className={'lib' + (hasLive ? ' gbox' : '')}>
-        {hasLive && <div style={{ textAlign: 'right' }}><span className="gmaps-attr" translate="no">Google Maps</span></div>}
+        {hasLive && <div style={{ textAlign: 'right' }}><span className="gmaps-attr">© OpenStreetMap contributors</span></div>}
         {loading && <p className="small muted">Loading…</p>}
         {!loading && !rows.length && <p className="small muted">{mode === 'search' && q.trim().length < 2 ? 'Type at least 2 letters.' : !live && !v.curated ? 'Live places aren’t available right now; add a custom block instead.' : 'Nothing found.'}</p>}
         {rows.slice(0, 25).map((r) => (

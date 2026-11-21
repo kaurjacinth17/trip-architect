@@ -1,14 +1,14 @@
-// Google Map (Maps JavaScript API via @vis.gl/react-google-maps). Every map in the app uses it: Google's terms
-// require Places data on a map to be on a Google Map, and the map carries Google's own attribution. Without a
-// browser key it renders nothing and callers show a list fallback (MapFallback).
-import { APIProvider, AdvancedMarker, Map, useMap } from '@vis.gl/react-google-maps';
+// Every map in the app: OpenStreetMap tiles via Leaflet (free, no key; © OpenStreetMap contributors, ODbL).
+// The component keeps the props the app already used (pins, day routes, area circles, framing, focus, hover,
+// "search this area" view reports and click-to-pin), so pages don't care which map library draws it.
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef } from 'react';
 import { prefersReducedMotion } from '../lib/hooks';
 
-export const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY || '';
-/** DEMO_MAP_ID is Google's documented demo map ID for development; set your own for production. */
-export const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
-export const hasGoogleMaps = () => !!MAPS_KEY;
+/** Maps need no key any more; kept for callers that still ask. */
+export const hasGoogleMaps = () => true;
+export const hasMap = hasGoogleMaps;
 
 export interface GPin {
   id: string; lat: number; lng: number; title: string;
@@ -21,101 +21,24 @@ export interface GRoute { col: string; pts: { lat: number; lng: number }[] }
 export interface GArea { name: string; lat: number; lng: number }
 export interface MapView { center: { lat: number; lng: number }; radius: number }
 
-/** Dashed polyline per day, in visit order. */
-function Routes({ routes }: { routes: GRoute[] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!map) return;
-    const lines = routes.filter((r) => r.pts.length > 1).map((r) => new google.maps.Polyline({
-      map, path: r.pts, strokeOpacity: 0, clickable: false,
-      icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, strokeColor: r.col, strokeWeight: 3, scale: 3 }, offset: '0', repeat: '14px' }],
-    }));
-    return () => lines.forEach((l) => l.setMap(null));
-  }, [map, routes]);
-  return null;
-}
-
-/** Neighbourhood circles (stay guide / OpenStreetMap areas). */
-function Areas({ areas }: { areas: GArea[] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!map) return;
-    const cs = areas.map((a) => new google.maps.Circle({ map, center: a, radius: 900, strokeOpacity: 0, fillColor: '#1f4d3a', fillOpacity: 0.1, clickable: false }));
-    return () => cs.forEach((c) => c.setMap(null));
-  }, [map, areas]);
-  return null;
-}
-
-function Fit({ pts, fitKey }: { pts: { lat: number; lng: number }[]; fitKey: string }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!map || !pts.length) return;
-    if (pts.length === 1) { map.setCenter(pts[0]); map.setZoom(15); return; }
-    const b = new google.maps.LatLngBounds();
-    for (const p of pts) b.extend(p);
-    map.fitBounds(b, 48);
-  }, [map, fitKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  return null;
-}
-
-function Focus({ pin }: { pin: GPin | undefined }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!map || !pin) return;
-    if (prefersReducedMotion()) map.setCenter(pin); else map.panTo(pin);
-  }, [map, pin]);
-  return null;
-}
-
-/** Report the visible area (centre + radius) after the user stops moving the map. */
-function ViewWatcher({ onView }: { onView: (v: MapView) => void }) {
-  const map = useMap();
-  const cb = useRef(onView);
-  cb.current = onView;
-  useEffect(() => {
-    if (!map) return;
-    const l = map.addListener('idle', () => {
-      const b = map.getBounds(), c = map.getCenter();
-      if (!b || !c) return;
-      const ne = b.getNorthEast();
-      const radius = Math.min(10_000, Math.max(300, google.maps.geometry ? google.maps.geometry.spherical.computeDistanceBetween(c, ne) : haversine(c.lat(), c.lng(), ne.lat(), ne.lng())));
-      cb.current({ center: { lat: c.lat(), lng: c.lng() }, radius });
-    });
-    return () => l.remove();
-  }, [map]);
-  return null;
-}
+/** Tile server: OpenStreetMap's own by default (fair use, light traffic). Set VITE_MAP_TILES to use another provider. */
+const TILES = import.meta.env.VITE_MAP_TILES || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const ATTRIB = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
 
 const haversine = (a: number, b: number, c: number, d: number) => {
   const r = (x: number) => (x * Math.PI) / 180;
   const h = Math.sin(r(c - a) / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(r(d - b) / 2) ** 2;
   return 12742000 * Math.asin(Math.sqrt(h));
 };
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-function FitButton({ pts }: { pts: { lat: number; lng: number }[] }) {
-  const map = useMap();
-  return (
-    <div className="mapctl noprint">
-      <button type="button" aria-label="Fit all" style={{ fontSize: 14 }} onClick={() => {
-        if (!map || !pts.length) return;
-        const b = new google.maps.LatLngBounds();
-        for (const p of pts) b.extend(p);
-        map.fitBounds(b, 48);
-      }}>Fit</button>
-    </div>
-  );
-}
-
-function ClickToPin({ onClick }: { onClick: (ll: { lat: number; lng: number }) => void }) {
-  const map = useMap();
-  const cb = useRef(onClick);
-  cb.current = onClick;
-  useEffect(() => {
-    if (!map) return;
-    const l = map.addListener('click', (e: google.maps.MapMouseEvent) => { if (e.latLng) cb.current({ lat: +e.latLng.lat().toFixed(5), lng: +e.latLng.lng().toFixed(5) }); });
-    return () => l.remove();
-  }, [map]);
-  return null;
+function pinHtml(p: GPin, on: boolean) {
+  const body = p.kind === 'stay'
+    ? '<span class="pin-stay"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M0 11V5l6-5 6 5v6z" /></svg></span>'
+    : p.kind === 'idea' || p.kind === 'nearby'
+      ? `<span class="pin-idea${on ? ' on' : ''}" style="color:${p.col || '#6b7a70'}"></span>`
+      : `<span class="pin${on ? ' on' : ''}" style="background:${p.col || '#1f4d3a'}">${esc(String(p.label ?? ''))}</span>`;
+  return `<span class="gpin">${body}${p.showTitle || on ? `<span class="plab">${esc(p.title)}</span>` : ''}</span>`;
 }
 
 export function GMap({ pins, routes = [], areas = [], fitTo, active, focus, onPick, onHover, onView, onMapClick, label, height = 'min(68vh,620px)', children }: {
@@ -134,61 +57,102 @@ export function GMap({ pins, routes = [], areas = [], fitTo, active, focus, onPi
   height?: string;
   children?: React.ReactNode;
 }) {
+  const el = useRef<HTMLDivElement>(null);
+  const map = useRef<L.Map | null>(null);
+  const layers = useRef<{ pins: L.LayerGroup; shapes: L.LayerGroup } | null>(null);
+  const cbs = useRef({ onPick, onHover, onView, onMapClick });
+  cbs.current = { onPick, onHover, onView, onMapClick };
   const frame = useMemo(() => (fitTo && fitTo.length ? fitTo : [...pins, ...areas]), [fitTo, pins, areas]);
   const fitKey = useMemo(() => frame.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join('|'), [frame]);
-  if (!MAPS_KEY) return null;
-  const centre = frame[0] || { lat: 22, lng: 79 };
+
+  // Create the map once
+  useEffect(() => {
+    if (!el.current) return;
+    const m = L.map(el.current, { scrollWheelZoom: false, zoomControl: true, attributionControl: true }).setView([22, 79], 5);
+    L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIB }).addTo(m);
+    layers.current = { shapes: L.layerGroup().addTo(m), pins: L.layerGroup().addTo(m) };
+    m.on('moveend', () => {
+      if (!cbs.current.onView) return;
+      const c = m.getCenter(), ne = m.getBounds().getNorthEast();
+      cbs.current.onView({ center: { lat: c.lat, lng: c.lng }, radius: Math.min(10_000, Math.max(300, haversine(c.lat, c.lng, ne.lat, ne.lng))) });
+    });
+    m.on('click', (e: L.LeafletMouseEvent) => cbs.current.onMapClick?.({ lat: +e.latlng.lat.toFixed(5), lng: +e.latlng.lng.toFixed(5) }));
+    map.current = m;
+    return () => { m.remove(); map.current = null; layers.current = null; };
+  }, []);
+
+  // Routes and areas
+  useEffect(() => {
+    const g = layers.current?.shapes;
+    if (!g) return;
+    g.clearLayers();
+    for (const r of routes) if (r.pts.length > 1) L.polyline(r.pts.map((p) => [p.lat, p.lng] as L.LatLngTuple), { color: r.col, weight: 3, opacity: 0.85, dashArray: '6 8', interactive: false }).addTo(g);
+    for (const a of areas) {
+      L.circle([a.lat, a.lng], { radius: 900, stroke: false, fillColor: '#1f4d3a', fillOpacity: 0.1, interactive: false }).addTo(g);
+      L.marker([a.lat, a.lng], { icon: L.divIcon({ className: 'alab-wrap', html: `<span class="alab">${esc(a.name)}</span>`, iconSize: undefined }), interactive: false, zIndexOffset: -1000 }).addTo(g);
+    }
+  }, [routes, areas]);
+
+  // Pins
+  useEffect(() => {
+    const g = layers.current?.pins;
+    if (!g) return;
+    g.clearLayers();
+    for (const p of pins) {
+      const on = p.id === active;
+      const mk = L.marker([p.lat, p.lng], {
+        icon: L.divIcon({ className: 'gpin-wrap', html: pinHtml(p, on), iconSize: undefined }),
+        title: p.title, alt: p.title, keyboard: !!cbs.current.onPick,
+        zIndexOffset: on ? 1000 : p.kind === 'place' ? 500 : p.kind === 'stay' ? 400 : 100,
+      });
+      mk.on('click', () => cbs.current.onPick?.(p.id));
+      mk.on('mouseover', () => cbs.current.onHover?.(p.id));
+      mk.on('mouseout', () => cbs.current.onHover?.(null));
+      mk.addTo(g);
+    }
+  }, [pins, active]);
+
+  // Frame the places
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !frame.length) return;
+    if (frame.length === 1) m.setView([frame[0].lat, frame[0].lng], 15, { animate: false });
+    else m.fitBounds(L.latLngBounds(frame.map((p) => [p.lat, p.lng] as L.LatLngTuple)), { padding: [48, 48], maxZoom: 16, animate: false });
+  }, [fitKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Focus a pin
+  useEffect(() => {
+    const m = map.current;
+    const p = pins.find((x) => x.id === focus);
+    if (!m || !p) return;
+    m.panTo([p.lat, p.lng], { animate: !prefersReducedMotion() });
+  }, [focus]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <APIProvider apiKey={MAPS_KEY} language="en" region="IN" libraries={['geometry']}>
-      <div className="map gmap" style={{ height }} role="region" aria-label={label}>
-        <Map mapId={MAP_ID} defaultCenter={centre} defaultZoom={12} gestureHandling="cooperative" clickableIcons={false} style={{ position: 'absolute', inset: 0 }}>
-          <Fit pts={frame} fitKey={fitKey} />
-          <Focus pin={pins.find((p) => p.id === focus)} />
-          <Routes routes={routes} />
-          <Areas areas={areas} />
-          {onView && <ViewWatcher onView={onView} />}
-          {onMapClick && <ClickToPin onClick={onMapClick} />}
-          {areas.map((a) => (
-            <AdvancedMarker key={'a:' + a.name} position={a} zIndex={0} clickable={false}><span className="alab">{a.name}</span></AdvancedMarker>
-          ))}
-          {pins.map((p) => {
-            const on = p.id === active;
-            return (
-              <AdvancedMarker key={p.kind + ':' + p.id} position={p} title={p.title} zIndex={on ? 1000 : p.kind === 'place' ? 500 : p.kind === 'stay' ? 400 : 100}
-                onClick={onPick ? () => onPick(p.id) : undefined}
-                onMouseEnter={() => onHover?.(p.id)} onMouseLeave={() => onHover?.(null)}>
-                <span className="gpin">
-                  {p.kind === 'stay'
-                    ? <span className="pin-stay"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M0 11V5l6-5 6 5v6z" /></svg></span>
-                    : p.kind === 'idea' || p.kind === 'nearby'
-                      ? <span className={'pin-idea' + (on ? ' on' : '')} style={{ color: p.col || '#6b7a70' }} />
-                      : <span className={'pin' + (on ? ' on' : '')} style={{ background: p.col || '#1f4d3a' }}>{p.label ?? ''}</span>}
-                  {(p.showTitle || on) && <span className="plab">{p.title}</span>}
-                </span>
-              </AdvancedMarker>
-            );
-          })}
-        </Map>
-        <APIProviderChildren pts={frame}>{children}</APIProviderChildren>
+    <div className="map gmap" style={{ height, position: 'relative' }} role="region" aria-label={label}>
+      <div ref={el} style={{ position: 'absolute', inset: 0 }} />
+      <div className="mapctl noprint">
+        <button type="button" aria-label="Fit all" style={{ fontSize: 14 }} onClick={() => {
+          const m = map.current;
+          if (!m || !frame.length) return;
+          m.fitBounds(L.latLngBounds(frame.map((p) => [p.lat, p.lng] as L.LatLngTuple)), { padding: [48, 48], maxZoom: 16 });
+        }}>Fit</button>
       </div>
-    </APIProvider>
+      {children}
+    </div>
   );
 }
 
-function APIProviderChildren({ pts, children }: { pts: { lat: number; lng: number }[]; children?: React.ReactNode }) {
-  return <><FitButton pts={pts} />{children}</>;
-}
-
-/** Without a Maps key: the same places as an accessible list with Google Maps links. */
+/** A plain list of the places with map links (used where a list reads better than a map). */
 export function MapFallback({ pins, onPick, note }: { pins: GPin[]; onPick?: (id: string) => void; note?: string }) {
   return (
     <div className="card mapfb">
-      <p className="small muted">{note || 'The map isn’t available on this site right now. Here are the places instead.'}</p>
+      <p className="small muted">{note || 'Here are the places.'}</p>
       <ol className="small">
         {pins.filter((p) => p.kind !== 'idea').slice(0, 60).map((p) => (
           <li key={p.kind + p.id}>
             {onPick ? <button type="button" className="linkish" onClick={() => onPick(p.id)}>{p.title}</button> : p.title}
-            {' · '}<a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer">Google Maps</a>
+            {' · '}<a href={`https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=17/${p.lat}/${p.lng}`} target="_blank" rel="noopener noreferrer">Map</a>
           </li>
         ))}
       </ol>

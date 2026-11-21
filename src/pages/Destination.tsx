@@ -24,7 +24,7 @@ const GMapLazy = lazy(() => import('../components/GMap').then((m) => ({ default:
 
 /** Google Maps link; uses the place ID when the curated place has been linked (scripts/link-curated.ts). */
 export function mapsLink(lat: number, lng: number, placeId?: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}${placeId ? `&query_place_id=${placeId}` : ''}`;
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}${placeId && !placeId.startsWith('osm-') ? `&query_place_id=${placeId}` : ''}`;
 }
 
 /** "Add to my trip": choose a trip (adds to its wishlist) or start a new one. Reference `addToTrip`. */

@@ -28,7 +28,7 @@ import { mapsLink } from './Destination';
 const SCENE_FOR: Record<DestType, string> = { beach: 'goa', hill: 'manali', pilgrimage: 'varanasi', wildlife: 'kerala', tier2: 'jaipur', metro: 'pondicherry', other: 'udaipur' };
 
 export function GoogleAttribution({ style }: { style?: React.CSSProperties }) {
-  return <span className="gmaps-attr" translate="no" style={style}>Google Maps</span>;
+  return <span className="gmaps-attr" style={style}>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors</span>;
 }
 
 /** Find a record: local cache → any trip that uses it → Google details (Pro) for "g:" keys. */

@@ -322,7 +322,6 @@ function DayMain({ t, A, di, ind, drag, ctx, onEdit, onAddCustom }: {
   const set = useUI((s) => s.set);
   const selected = useUI((s) => s.selected);
   const selectMode = useUI((s) => s.selectMode);
-  const liveTravel = useUI((s) => s.liveTravel);
   const lastSel = useRef<string | null>(null);
   const [pickDest, setPickDest] = useState(false);
   const toggleSel = (id: string, shift: boolean) => {
@@ -370,7 +369,6 @@ function DayMain({ t, A, di, ind, drag, ctx, onEdit, onAddCustom }: {
           }}>Optimise route</button>
           <button type="button" className="btn sm" onClick={() => setLegFor(di)}>Add travel leg</button>
           <button type="button" className={'btn sm' + (selectMode ? ' pri' : '')} aria-pressed={selectMode} onClick={() => set({ selectMode: !selectMode, selected: [] })}>{selectMode ? 'Done selecting' : 'Select'}</button>
-          <label className="row small" style={{ gap: 6, fontWeight: 600 }} title="Uses Google Routes for this day’s legs (not stored)"><input type="checkbox" checked={liveTravel} onChange={(e) => set({ liveTravel: e.target.checked })} />Live travel times</label>
           <button type="button" className="btn sm ghost" onClick={() => action((tt) => {
             const d = tt.plan[di];
             if (!d.items.length) return false;
@@ -588,7 +586,7 @@ function LiveLibrary({ t, di, q, cen }: { t: Trip; di: number; q: string; cen: {
   };
   return (
     <div className="lib gbox">
-      <div className="row between"><b className="small">Top places in {v.name}</b><span className="gmaps-attr" translate="no">Google Maps</span></div>
+      <div className="row between"><b className="small">Top places in {v.name}</b><span className="gmaps-attr">© OpenStreetMap contributors</span></div>
       {rows.map(({ p, d, src }) => (
         <div className="li" key={p.pid}>
           <div>

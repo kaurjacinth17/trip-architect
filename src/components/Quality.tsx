@@ -11,12 +11,12 @@ export function WhatsNew() {
   if (!open) return null;
   return (
     <details className="whatsnew" role="region" aria-label="What’s new">
-      <summary className="small"><b>New in Trip Architect:</b> 40 destinations with real photos, City Guides, hotel ratings, Google Maps, shared expenses, travel legs and more. <span className="linkish">See all</span></summary>
+      <summary className="small"><b>New in Trip Architect:</b> 40 destinations with real photos, City Guides, hotels, maps, shared expenses, travel legs and more. <span className="linkish">See all</span></summary>
       <ul className="small" style={{ paddingLeft: 18, margin: '8px 0' }}>
         <li>Go anywhere: 40 destinations on Explore with real photos, and search for any other place.</li>
-        <li>City Guides with real places, ratings and filters; hotels with Google ratings and websites.</li>
+        <li>City Guides with real places, ratings and filters; hotels with websites and official class, all from open data.</li>
         <li>Lock, move, insert and reorder anything in the itinerary; days start and end at your hotel.</li>
-        <li>Google Maps with restaurants and cafés nearby, and one-tap navigation.</li>
+        <li>Maps with restaurants and cafés nearby (OpenStreetMap), and one-tap navigation.</li>
         <li>A budget that follows your stays and plans; Splitwise-style expenses with UPI links.</li>
         <li>Travel legs, a bookings vault, Today mode, weather, calendar export and an emergency card.</li>
       </ul>

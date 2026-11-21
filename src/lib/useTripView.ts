@@ -37,12 +37,12 @@ export function useTripView(raw: Trip | undefined): Trip | undefined {
     const t = clone(raw);
     for (const x of [...t.plan.flatMap((d) => d.items), ...t.wish]) {
       if (!x.gid || x.t) continue;
-      x.t = lites[x.gid]?.name || (live === 'live' ? 'Loading place…' : 'Saved place (connect to load its name)');
+      x.t = lites[x.gid]?.name || (!x.gid.startsWith('osm-') ? 'Saved place' : live === 'live' ? 'Loading place…' : 'Saved place (connect to load its name)');
       x.nameLive = true;
     }
     for (const s of t.stays) {
       if (!s.gid || s.name) continue;
-      s.name = lites[s.gid]?.name || (live === 'live' ? 'Loading hotel…' : 'Saved hotel (connect to load its name)');
+      s.name = lites[s.gid]?.name || (!s.gid.startsWith('osm-') ? 'Saved hotel' : live === 'live' ? 'Loading hotel…' : 'Saved hotel (connect to load its name)');
       s.nameLive = true;
     }
     return t;

@@ -44,7 +44,7 @@ function RelinkPicker({ t, dest, onPick }: { t: Trip; dest: string | null; onPic
             <span><span className="nm">{p.name}</span><br /><span className="mt">{CATS[categorise(p.primaryType, p.types).cat][0]}{p.rating != null ? ` · ★ ${p.rating.toFixed(1)}` : ''}</span></span>
           </button>
         ))}
-        {res.data?.places.length ? <span className="gmaps-attr" translate="no" style={{ textAlign: 'right' }}>Google Maps</span> : null}
+        {res.data?.places.length ? <span className="gmaps-attr" style={{ textAlign: 'right' }}>© OpenStreetMap contributors</span> : null}
       </div>
     </div>
   );
@@ -138,7 +138,7 @@ export function ItemDialog({ t, x, di, isNew, onClose }: { t: Trip; x: Item; di:
 
         <div className="card grid" style={{ gap: 6, padding: 12 }}>
           <b className="small">Linked place</b>
-          {link.gid ? <p className="small">{link.name || 'A place on Google Maps'} · <span className="gmaps-attr" translate="no">Google Maps</span>{!f.t && <span className="tiny muted"> · the title shows its current name</span>}</p>
+          {link.gid ? <p className="small">{link.name || 'A saved place'} · <span className="gmaps-attr">OpenStreetMap</span>{!f.t && <span className="tiny muted"> · the title shows its current name</span>}</p>
             : link.pid ? <p className="small">{PL[link.pid]?.n} · from the {destName(t, x.dest)} guide</p>
             : <p className="small muted">Not linked to a place{link.lat != null ? ' (has a dropped pin)' : ''}.</p>}
           <div className="row" style={{ gap: 6 }}>

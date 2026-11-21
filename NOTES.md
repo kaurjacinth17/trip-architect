@@ -274,3 +274,26 @@ loader needs file extensions, so extensionless relative imports (`'../_lib/http'
 (ERR_MODULE_NOT_FOUND) and every `/api` call returned 500. That's why live data never worked in production. All
 relative imports in `api/` now end in `.js` (TypeScript maps them to the `.ts` files), verified by compiling each file
 with esbuild and loading the router under Node 22, and a test now fails if an extensionless import comes back.
+
+### Switch to open data (no Google Cloud)
+
+The owner chose not to use Google Cloud. Everything that needed a Google key now uses free open data with no keys:
+maps are OpenStreetMap tiles via Leaflet (`src/components/GMap.tsx` keeps its old props); `/api` place endpoints
+keep their response shapes but read OpenStreetMap through Overpass (`api/_lib/osm.ts`: tab filters, tag → type
+mapping, notability ordering, an opening_hours parser), Photon for destination search, Nominatim for destination
+details and addresses, and Wikipedia / Wikimedia Commons for summaries and credited photos.
+
+- Place IDs are `osm-N123` / `osm-W…` / `osm-R…`. Destinations keep the `g:` key prefix (so routes and stored
+  trips are unchanged). OpenStreetMap names are stored with items and stays (ODbL allows it); the 30-day
+  coordinate purge and share-link stripping now apply only to old Google IDs.
+- Lost compared with Google: star ratings, review counts, price levels, "open now" (computed from opening_hours
+  where it's parseable), traffic-aware live travel times (removed), and photos for places without a Wikipedia
+  article. Rating, review and price filters hide themselves when the data has none; hotels show the official
+  class (OSM `stars`) where tagged.
+- Trips saved with Google places keep their positions but show "Saved place" (Google names were never stored).
+- Fair use: Overpass, Photon, Nominatim and the OSM tile server are community services. Edge caching keeps traffic
+  low; for heavy use set `OVERPASS_URL`, `PHOTON_URL`, `NOMINATIM_URL` and `VITE_MAP_TILES`.
+- Google code left dormant (`api/_lib/google.ts`, `budget.ts`, Google mappers in `places.ts`) for the test
+  fixtures; nothing calls Google.
+- Not verifiable from the build container (no network to these services): the real Overpass/Photon/Nominatim
+  responses. Tests use mocked responses in the documented formats; check the preview.

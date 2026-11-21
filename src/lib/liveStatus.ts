@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 
 export type LiveState = 'unknown' | 'live' | 'unconfigured' | 'resting' | 'offline';
-export interface Providers { googlePlaces: boolean; unsplash: boolean; supabase: boolean; upstash: boolean }
+export interface Providers { places?: boolean; googlePlaces?: boolean; unsplash?: boolean; supabase: boolean; upstash: boolean }
 
 interface LiveStatus {
   state: LiveState;
@@ -28,8 +28,8 @@ export async function checkHealth(fetchImpl: typeof fetch = fetch) {
     const r = await fetchImpl('/api/health');
     if (!r.ok) throw new Error(String(r.status));
     const b = (await r.json()) as { providers: Providers; resting: string[] };
-    const resting = b.resting?.includes('textSearchEnterprise');
-    useLiveStatus.getState().set({ providers: b.providers, state: !b.providers.googlePlaces ? 'unconfigured' : resting ? 'resting' : 'live' });
+    // Open data (OpenStreetMap, Photon, Wikipedia) needs no key, so live place data is on whenever the API answers.
+    useLiveStatus.getState().set({ providers: b.providers, state: b.providers.places === false ? 'unconfigured' : 'live' });
   } catch {
     // Static hosting without functions, or offline: curated mode.
     useLiveStatus.getState().set({ providers: NO_PROVIDERS, state: 'unconfigured' });

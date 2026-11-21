@@ -9,12 +9,8 @@ import { _resetRedis } from '../../api/_lib/redis';
 import { GET as areas, overpassQuery } from '../../api/_routes/areas';
 import { GET as climate } from '../../api/_routes/climate';
 import { GET as fx } from '../../api/_routes/fx';
-import { POST as autocomplete } from '../../api/_routes/places/autocomplete';
-import { GET as destination } from '../../api/_routes/places/destination';
-import { GET as lite } from '../../api/_routes/places/lite';
-import { POST as search, buildSearch } from '../../api/_routes/places/search';
 import { GET as summary } from '../../api/_routes/summary';
-import { IDS, frankfurter, googleAutocomplete, googleDestination, googleSearch, openMeteoArchive, overpass, wikipedia } from '../fixtures/providers';
+import { frankfurter, googleAutocomplete, googleDestination, googleSearch, openMeteoArchive, overpass, wikipedia } from '../fixtures/providers';
 
 const KEY = 'AIzaTEST-server-key';
 const seen: { url: string; mask: string | null; body?: unknown }[] = [];
@@ -53,8 +49,6 @@ beforeEach(() => {
 afterEach(() => { delete process.env.GOOGLE_PLACES_SERVER_KEY; });
 
 const get = (path: string) => new Request('http://localhost' + path, { headers: { 'x-forwarded-for': '5.5.5.5' } });
-const post = (path: string, body: unknown) => new Request('http://localhost' + path, { method: 'POST', body: JSON.stringify(body), headers: { 'x-forwarded-for': '5.5.5.5' } });
-const noKey = async (r: Response) => { const t = await r.clone().text(); expect(t).not.toContain(KEY); return r; };
 
 describe('field masks (every change here changes the Google bill)', () => {
   it('match the snapshot', () => {
@@ -76,74 +70,6 @@ describe('field masks (every change here changes the Google bill)', () => {
         "transport": "places.id,places.displayName,places.location,places.types",
       }
     `);
-  });
-});
-
-describe('POST /api/places/autocomplete', () => {
-  it('searches destinations with 5 types and an India bias, returning names and regions', async () => {
-    const r = await noKey(await autocomplete(post('/api/places/autocomplete', { input: 'Jodh', sessionToken: 'abcd1234-ef' })));
-    expect(r.status).toBe(200);
-    expect((await r.json()).suggestions).toEqual([{ placeId: IDS.jodhpur, name: 'Jodhpur', secondary: 'Rajasthan, India', types: ['locality', 'political'] }]);
-    const call = seen[0];
-    expect(call.mask).toBe(MASKS.autocomplete);
-    expect(call.body).toMatchObject({ includedPrimaryTypes: ['locality', 'administrative_area_level_1', 'administrative_area_level_2', 'natural_feature', 'national_park'], locationBias: { rectangle: expect.any(Object) }, sessionToken: 'abcd1234-ef' });
-    expect(call.body).not.toHaveProperty('locationRestriction');
-    expect(call.body).not.toHaveProperty('includedRegionCodes');
-  });
-  it('rejects too-short input and bad session tokens without calling Google', async () => {
-    expect((await autocomplete(post('/api/places/autocomplete', { input: 'J', sessionToken: 'abcd1234' }))).status).toBe(400);
-    expect((await autocomplete(post('/api/places/autocomplete', { input: 'Jodhpur', sessionToken: '<script>' }))).status).toBe(400);
-    expect(seen).toHaveLength(0);
-  });
-});
-
-describe('GET /api/places/destination', () => {
-  it('maps a destination record and passes the session token', async () => {
-    const r = await noKey(await destination(get(`/api/places/destination?id=${IDS.jodhpur}&session=abcd1234-ef`)));
-    expect(await r.json()).toMatchObject({ placeId: IDS.jodhpur, name: 'Jodhpur', region: 'Rajasthan', country: 'India', countryCode: 'IN', center: { lat: 26.2389, lng: 73.0243 }, timezone: 'Asia/Kolkata' });
-    expect(seen[0].mask).toBe(MASKS.destination);
-    expect(seen[0].url).toContain('sessionToken=abcd1234-ef');
-    expect(r.headers.get('cache-control')).toBe('no-store');
-  });
-  it('rejects malformed IDs', async () => {
-    expect((await destination(get('/api/places/destination?id=../../etc'))).status).toBe(400);
-  });
-});
-
-describe('POST /api/places/search', () => {
-  const body = { tab: 'famous', destName: 'Jodhpur', center: { lat: 26.24, lng: 73.02 }, viewport: { low: { lat: 26.18, lng: 72.95 }, high: { lat: 26.33, lng: 73.1 } } };
-  it('builds a typed, viewport-restricted query and maps rating, reviews, price and area', async () => {
-    const r = await noKey(await search(post('/api/places/search', body)));
-    const b = await r.json();
-    expect(b.places[0]).toMatchObject({ id: IDS.mehrangarh, name: 'Mehrangarh Fort', rating: 4.7, userRatingCount: 61000, areaHint: 'Fort Area', openNow: true });
-    expect(seen[0].mask).toBe(MASKS.search);
-    expect(seen[0].body).toMatchObject({ textQuery: 'top tourist attractions in Jodhpur', includedType: 'tourist_attraction', pageSize: 20, locationRestriction: { rectangle: expect.any(Object) } });
-    expect(r.headers.get('cache-control')).toBe('no-store');
-  });
-  it('maps price levels to 0–4', async () => {
-    const b = await (await search(post('/api/places/search', { ...body, tab: 'restaurants' }))).json();
-    expect(b.places.map((p: { priceLevel?: number }) => p.priceLevel)).toEqual([2, 1]);
-  });
-  it('searches inside an area by name instead of by coordinates', () => {
-    expect(buildSearch({ ...body, tab: 'hotels', area: 'Old City' } as never)).toMatchObject({ textQuery: 'hotels in Old City, Jodhpur', includedType: 'lodging', locationBias: expect.any(Object) });
-  });
-  it('turns a Google quota error into the resting message', async () => {
-    const r = await search(post('/api/places/search', { ...body, text: 'quota' }));
-    expect(r.status).toBe(503);
-    expect((await r.json()).error).toMatchObject({ code: 'quota_exhausted', message: expect.stringMatching(/resting for today/) });
-  });
-  it('rejects unknown tabs', async () => {
-    expect((await search(post('/api/places/search', { ...body, tab: 'casinos' }))).status).toBe(400);
-  });
-});
-
-describe('GET /api/places/lite', () => {
-  it('returns only name, coordinates and links', async () => {
-    const b = await (await lite(get(`/api/places/lite?id=${IDS.mehrangarh}`))).json();
-    const allowed = ['closed', 'googleMapsUri', 'id', 'location', 'name', 'primaryType', 'types'];
-    expect(Object.keys(b).every((k) => allowed.includes(k))).toBe(true);
-    expect(b).toMatchObject({ id: IDS.mehrangarh, name: 'Mehrangarh Fort' });
-    expect(seen[0].mask).toBe(MASKS.lite);
   });
 });
 

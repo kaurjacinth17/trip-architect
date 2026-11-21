@@ -1,26 +1,21 @@
-// POST /api/places/transport  { center }  The best-known railway stations and airports near a destination, for the
-// hotel comparison ("distance to the station or airport"). Two Nearby Search Pro calls (IDs, names, coordinates only),
-// only when the user opens a comparison; the browser keeps the result in memory for the session.
+// POST /api/places/transport  { center }  Railway stations and airports near a destination (OpenStreetMap), for the
+// hotel comparison. Edge-cached for a week.
 import { z } from 'zod';
 import { dedupe } from '../../_lib/dedupe.js';
-import { googlePlaces } from '../../_lib/google.js';
 import { handler, json, readJson } from '../../_lib/http.js';
-import { LatLngSchema, MASKS, toLL, type GPlace } from '../../_lib/places.js';
+import { aroundQuery, mapList, overpass } from '../../_lib/osm.js';
+import { LatLngSchema } from '../../_lib/places.js';
+import { edgeCache } from '../../_lib/upstream.js';
 
 const Body = z.object({ center: LatLngSchema });
-const KINDS = { stations: { types: ['train_station'], radius: 25_000 }, airports: { types: ['airport'], radius: 50_000 } } as const;
 const r3 = (n: number) => Math.round(n * 1e3) / 1e3;
 
 export const POST = handler({ methods: ['POST'], rateLimit: { bucket: 'transport', limit: 20, windowSec: 60 } }, async (request) => {
   const { center } = Body.parse(await readJson(request));
-  const out: Record<keyof typeof KINDS, { id: string; name: string; location?: { lat: number; lng: number } }[]> = { stations: [], airports: [] };
-  for (const [k, K] of Object.entries(KINDS) as [keyof typeof KINDS, (typeof KINDS)[keyof typeof KINDS]][]) {
-    const body = {
-      includedTypes: K.types, maxResultCount: 3, rankPreference: 'POPULARITY', languageCode: 'en',
-      locationRestriction: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: K.radius } },
-    };
-    const r = await dedupe(`tr:${k}:${r3(center.lat)},${r3(center.lng)}`, () => googlePlaces<{ places?: GPlace[] }>({ path: 'places:searchNearby', body, fieldMask: MASKS.transport, sku: 'nearbySearchPro' }));
-    out[k] = (r.places || []).map((p) => ({ id: p.id, name: p.displayName?.text || '', location: toLL(p.location) }));
-  }
-  return json(out);
+  const out = await dedupe(`tr:${r3(center.lat)},${r3(center.lng)}`, async () => {
+    const [st, ap] = await Promise.all([overpass(aroundQuery(['stations'], center, 25_000, { limit: 20 })), overpass(aroundQuery(['airports'], center, 50_000, { limit: 10 }))]);
+    const pick = (l: ReturnType<typeof mapList>) => l.slice(0, 3).map((p) => ({ id: p.id, name: p.name, location: p.location }));
+    return { stations: pick(mapList(st)), airports: pick(mapList(ap)) };
+  });
+  return json(out, { cache: edgeCache(7 * 86400) });
 });

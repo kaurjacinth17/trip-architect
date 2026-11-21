@@ -14,7 +14,7 @@ export function itemFromPlace(p: Place, s?: number): Item {
   if (p.gid) {
     // Live Google place: store the place ID and (for ≤30 days) its coordinates, never its name or area.
     return {
-      id: uid(), pid: null, gid: p.gid, t: '', cat: p.cat, s: s ?? 540, d: p.d, c: p.c, lat: p.lat, lng: p.lng, coordsFetchedAt: Date.now(),
+      id: uid(), pid: null, gid: p.gid, t: p.gid.startsWith('osm-') ? p.n : '', cat: p.cat, s: s ?? 540, d: p.d, c: p.c, lat: p.lat, lng: p.lng, coordsFetchedAt: Date.now(),
       area: '', dest: p.dest, pri: p.must ? 'must' : 'nice', n: '', done: false,
     };
   }

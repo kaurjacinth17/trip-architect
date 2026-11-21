@@ -5,14 +5,14 @@ test.beforeEach(async ({ page }) => {
   await page.route(/fonts\.(googleapis|gstatic)\.com|tile\.openstreetmap\.org/, (r) => r.fulfill({ status: 200, body: '' }));
 });
 
-const JODHPUR = '/destinations/g:ChIJTESTjodhpur0000000001/guide';
+const JODHPUR = '/destinations/g:osm-R900001/guide';
 
 test('Jodhpur hotels: 4.5+ in one area, shareable URL, set one as the stay', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await mockApi(page);
   // Open the destination first (stores its record), then its guide
-  await page.goto('/destinations/g:ChIJTESTjodhpur0000000001');
+  await page.goto('/destinations/g:osm-R900001');
   await page.getByRole('link', { name: 'City Guide', exact: true }).click();
   await page.getByLabel('Planning for').selectOption({ label: 'Jaipur getaway' });
   await page.getByRole('navigation', { name: 'City Guide sections' }).getByRole('link', { name: 'Hotels' }).click();
@@ -34,8 +34,8 @@ test('Jodhpur hotels: 4.5+ in one area, shareable URL, set one as the stay', asy
   await page.goto('/trips/sample-jaipur/stays');
   await expect(page.getByText('Haveli Alpha (fixture)')).toBeVisible(); // name shown live
   const stored = await page.evaluate(() => localStorage.getItem('trip-architect-v1') || '');
-  expect(stored).toContain('ChIJTESThotelalpha00001');
-  expect(stored).not.toContain('Haveli Alpha');
+  expect(stored).toContain('osm-N900009');
+  expect(stored).toContain('Haveli Alpha'); // OpenStreetMap names may be stored (ODbL)
   expect(errors).toEqual([]);
 });
 
@@ -72,7 +72,7 @@ test('“All areas” runs one search per area and reports an honest count; the 
   const drawer = page.getByRole('dialog', { name: 'Beta Residency (fixture)' });
   await expect(drawer.getByText('Fixture address')).toBeVisible();
   await expect(drawer.getByText('Monday: 9:00 AM – 9:00 PM')).toBeVisible();
-  await expect(drawer.getByText('Google Maps', { exact: true }).first()).toBeVisible();
+  await expect(drawer.getByRole('link', { name: 'OpenStreetMap' }).first()).toBeVisible();
 });
 
 test('Areas tab ranks areas and jumps to “Restaurants here”', async ({ page }) => {

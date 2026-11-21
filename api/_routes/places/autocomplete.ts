@@ -1,31 +1,25 @@
-// POST /api/places/autocomplete  { input, sessionToken }
-// Destination search: cities, towns, hill stations, islands, regions and parks, anywhere, biased toward India.
+// POST /api/places/autocomplete  { input }  Destination search with Photon (OpenStreetMap data; komoot's public
+// instance, fair use). Cities, towns, regions, islands, hill stations and parks, biased toward India.
 import { z } from 'zod';
 import { dedupe } from '../../_lib/dedupe.js';
-import { googlePlaces } from '../../_lib/google.js';
 import { handler, json, readJson } from '../../_lib/http.js';
-import { MASKS } from '../../_lib/places.js';
+import { osmId, photon } from '../../_lib/osm.js';
 
-const Body = z.object({
-  input: z.string().trim().min(2).max(80),
-  sessionToken: z.string().regex(/^[A-Za-z0-9-]{8,64}$/),
-});
-
-/** Up to 5 primary types (Google's limit): localities, states/regions, districts, natural features, national parks. */
-export const DESTINATION_TYPES = ['locality', 'administrative_area_level_1', 'administrative_area_level_2', 'natural_feature', 'national_park'];
-/** Bias (not restriction) toward India: its bounding rectangle. */
-export const INDIA_BIAS = { rectangle: { low: { latitude: 6.5, longitude: 68.1 }, high: { latitude: 35.7, longitude: 97.4 } } };
-
-interface GAuto { suggestions?: { placePrediction?: { placeId: string; types?: string[]; structuredFormat?: { mainText?: { text?: string }; secondaryText?: { text?: string } } } }[] }
+const Body = z.object({ input: z.string().trim().min(2).max(80), sessionToken: z.string().max(64).optional() });
+/** Feature kinds that make sense as a destination */
+const OK = /^(place:(city|town|village|hamlet|suburb|island|archipelago|region|state|county|district|municipality|locality)|boundary:(administrative|national_park|protected_area)|natural:(valley|peak|beach|bay|peninsula|island)|leisure:nature_reserve|tourism:attraction)$/;
 
 export const POST = handler({ methods: ['POST'], rateLimit: { bucket: 'autocomplete', limit: 60, windowSec: 60 } }, async (request) => {
   const b = Body.parse(await readJson(request));
-  const body = { input: b.input, sessionToken: b.sessionToken, includedPrimaryTypes: DESTINATION_TYPES, locationBias: INDIA_BIAS, languageCode: 'en' };
-  const r = await dedupe('ac:' + b.input.toLowerCase(), () => googlePlaces<GAuto>({ path: 'places:autocomplete', body, fieldMask: MASKS.autocomplete, sku: 'autocomplete' }), 30_000);
-  const suggestions = (r.suggestions || []).flatMap((s) => {
-    const p = s.placePrediction;
-    if (!p) return [];
-    return [{ placeId: p.placeId, name: p.structuredFormat?.mainText?.text || '', secondary: p.structuredFormat?.secondaryText?.text || '', types: p.types || [] }];
-  });
+  const feats = await dedupe('ac:' + b.input.toLowerCase(), () => photon(b.input, 12), 30_000);
+  const seen = new Set<string>();
+  const suggestions = feats.filter((f) => OK.test(`${f.properties.osm_key}:${f.properties.osm_value}`) && f.properties.name).flatMap((f) => {
+    const p = f.properties;
+    const id = osmId(p.osm_type, p.osm_id);
+    const label = `${p.name}|${p.state}|${p.country}`;
+    if (seen.has(label)) return [];
+    seen.add(label);
+    return [{ placeId: id, name: p.name!, secondary: [p.county !== p.name ? p.county : '', p.state, p.country].filter(Boolean).join(', '), types: [p.osm_value || 'locality'] }];
+  }).slice(0, 8);
   return json({ suggestions });
 });

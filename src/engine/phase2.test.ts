@@ -119,16 +119,15 @@ describe('generator for a non-curated destination', () => {
     pools: { [r.key]: poolFromLive(r.key, live('famous')) }, lunchPools: { [r.key]: live('restaurants') } });
   const items = t.plan.flatMap((d) => d.items);
 
-  it('uses live attractions, stores IDs and coordinates but never names', () => {
+  it('uses live attractions from OpenStreetMap and stores their IDs, names and coordinates (ODbL allows it)', () => {
     const g = items.filter((x) => x.gid);
     expect(g.length).toBeGreaterThan(0);
     for (const x of [...g, ...t.wish.filter((w) => w.gid)]) {
-      expect(x.t).toBe('');
-      expect(x.area).toBe('');
-      expect(typeof x.coordsFetchedAt).toBe('number');
+      expect(x.gid).toMatch(/^osm-/);
+      expect(x.t).not.toBe('');
+      expect(x.lat).not.toBeNull();
     }
-    expect(JSON.stringify(t)).not.toContain('Mehrangarh');
-    expect(t.plan.map((d) => d.label).join(' ')).not.toMatch(/Old City|Fort Area/);
+    expect(JSON.stringify(t)).toContain('Mehrangarh');
   });
   it('keeps the arrival-day rules and picks a nearby top-rated restaurant for lunch', () => {
     expect(t.plan[0].items[0]).toMatchObject({ t: 'Arrive and check in', s: 720 });
@@ -190,9 +189,12 @@ describe('destination operations', () => {
   });
 });
 
-describe('Google coordinates (30-day limit)', () => {
-  const r = jodhpur();
-  const mk = (): Trip => buildTrip({ dests: [r.key], days: 2, travelers: ['A'], pace: 'balanced', prefs: DEFAULT_PREFS, destRecords: { [r.key]: { ...r, coordsFetchedAt: Date.now() } }, pools: { [r.key]: poolFromLive(r.key, live('famous')) } });
+describe('places saved earlier from Google: coordinates (30-day limit)', () => {
+  // Trips from before the switch to open data hold Google place IDs; the old rules still apply to them.
+  const GID = 'ChIJTESTjodhpur0000000001';
+  const r = { ...jodhpur(), placeId: GID };
+  const legacy = live('famous').map((p) => ({ ...p, id: p.id.replace(/^osm-/, 'ChIJTESTlegacy') }));
+  const mk = (): Trip => buildTrip({ dests: [r.key], days: 2, travelers: ['A'], pace: 'balanced', prefs: DEFAULT_PREFS, destRecords: { [r.key]: { ...r, coordsFetchedAt: Date.now() } }, pools: { [r.key]: poolFromLive(r.key, legacy) } });
   it('refreshes after 25 days and deletes after 30', () => {
     const t = mk();
     expect(coordsToRefresh(t).items).toEqual([]);
@@ -205,14 +207,19 @@ describe('Google coordinates (30-day limit)', () => {
     // curated and custom coordinates are ours and stay
     expect(expired.plan[0].items.find((x) => !x.gid && x.lat != null) ?? null).toBeNull();
   });
+  it('OpenStreetMap places keep their coordinates (no 30-day limit, kept in share links)', () => {
+    const t = buildTrip({ dests: [jodhpur().key], days: 2, travelers: ['A'], pace: 'balanced', prefs: DEFAULT_PREFS, destRecords: { [jodhpur().key]: jodhpur() }, pools: { [jodhpur().key]: poolFromLive(jodhpur().key, live('famous')) } });
+    expect(purgeExpiredCoords(t, Date.now() + COORD_TTL_MS)).toBe(t);
+    expect(decodeShare(encodeShare(t)).plan.flatMap((d) => d.items).filter((x) => x.gid).every((x) => x.lat != null)).toBe(true);
+  });
   it('share links and exports carry place IDs but no Google coordinates', () => {
     const t = mk();
     const back = decodeShare(encodeShare(t));
     expect(back.plan.flatMap((d) => d.items).filter((x) => x.gid).every((x) => x.lat == null)).toBe(true);
-    expect(back.destRecords![r.key]).toMatchObject({ placeId: IDS.jodhpur, name: 'Jodhpur', center: null });
+    expect(back.destRecords![r.key]).toMatchObject({ placeId: GID, name: 'Jodhpur', center: null });
     expect(back).toEqual(JSON.parse(JSON.stringify(stripGoogleCoords(t))));
     const imported = normaliseTrip(exportJSON(t));
-    expect(imported.destRecords![r.key].placeId).toBe(IDS.jodhpur);
+    expect(imported.destRecords![r.key].placeId).toBe(GID);
     expect(imported.dests).toEqual([r.key]);
   });
 });

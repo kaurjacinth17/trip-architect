@@ -28,7 +28,7 @@ test('search “Jodhpur” in Explore and open its auto-built guide', async ({ p
   expect(errors).toEqual([]);
 });
 
-test('plan a trip to any destination: live starter plan with names shown but not stored', async ({ page }) => {
+test('plan a trip to any destination: live starter plan with real place names', async ({ page }) => {
   await mockApi(page);
   await page.goto('/new');
   await page.getByRole('combobox', { name: /search anywhere/ }).fill('Jodh');
@@ -40,8 +40,8 @@ test('plan a trip to any destination: live starter plan with names shown but not
   await page.getByRole('button', { name: /^Day 2/ }).click();
   await expect(page.locator('.tl .bt').filter({ hasText: /Mehrangarh Fort|Umaid Bhawan|Ghanta Ghar|Toorji/ }).first()).toBeVisible();
   const stored = await page.evaluate(() => localStorage.getItem('trip-architect-v1') || '');
-  expect(stored).toContain('ChIJTESTmehrangarh000001');
-  expect(stored).not.toContain('Mehrangarh');
+  expect(stored).toContain('osm-W900003');
+  expect(stored).toContain('Mehrangarh'); // OpenStreetMap names may be stored (ODbL)
 });
 
 test('add Spiti Valley as a second destination mid-trip, preview, apply', async ({ page }) => {

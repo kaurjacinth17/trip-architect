@@ -1,17 +1,17 @@
 // TEST FIXTURES ONLY. Shapes follow the real provider responses; the values are made up for tests and are never
 // shown to users. Used by API tests (MSW) and Playwright (route mocks).
 export const IDS = {
-  jodhpur: 'ChIJTESTjodhpur0000000001',
-  spiti: 'ChIJTESTspitivalley000001',
-  mehrangarh: 'ChIJTESTmehrangarh000001',
-  stepwell: 'ChIJTESTtoorjistepwell001',
-  clocktower: 'ChIJTESTclocktower000001',
-  umaid: 'ChIJTESTumaidbhawan00001',
-  cafe: 'ChIJTESTcafeone000000001',
-  thali: 'ChIJTESTthalihouse000001',
-  hotelA: 'ChIJTESThotelalpha00001',
-  hotelB: 'ChIJTESThotelbeta000001',
-  hotelC: 'ChIJTESThotelgamma00001',
+  jodhpur: 'osm-R900001',
+  spiti: 'osm-R900002',
+  mehrangarh: 'osm-W900003',
+  stepwell: 'osm-N900004',
+  clocktower: 'osm-N900005',
+  umaid: 'osm-W900006',
+  cafe: 'osm-N900007',
+  thali: 'osm-N900008',
+  hotelA: 'osm-N900009',
+  hotelB: 'osm-N900010',
+  hotelC: 'osm-N900011',
 };
 
 export const googleAutocomplete = (input: string) => ({

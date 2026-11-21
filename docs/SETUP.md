@@ -1,100 +1,34 @@
-# Setup: Google, Upstash, Supabase, Unsplash, Vercel
+# Setup: open data, Upstash, Supabase, Vercel
 
-Everything here is optional: with no keys at all the site still works in **guest + curated mode** (the 8
-hand-written destinations, localStorage trips). Each service you add switches on more live features.
-
-Numbers below were checked on **20 November 2026** against Google's *core services pricing list – India*
-(effective 1 August 2024). Google changes these; re-check before launch.
+Everything here is optional. **Maps and live place data need no account or key**: they use open data. Upstash and
+Supabase switch on extras (shared rate limits; accounts and collaboration).
 
 ---
 
-## 1. Google Maps Platform
+## 1. Maps and places: open data (no setup)
 
-### 1.1 Project and billing (India)
+The site doesn't use Google Cloud. What it uses instead, all free and keyless:
 
-1. Open https://console.cloud.google.com/ → project picker → **New project** → name it `trip-architect` → **Create**.
-2. **Billing** → **Link a billing account** → **Create billing account**. Choose **India** as the country and pay in INR.
-   - Google applies India pricing only if "a large majority of in-region usage" (by location requested or returned)
-     is in India, and may disqualify accounts that don't meet that. Heavy use for trips abroad could affect this.
-   - Accounts on India pricing can't sign up for subscription plans.
-3. Google Maps Platform requires a billing account even when you stay inside the free usage.
+| What | Source | Notes |
+|---|---|---|
+| Maps | OpenStreetMap tiles (Leaflet) | © OpenStreetMap contributors. OpenStreetMap's own tile server is for light use; for heavy traffic set `VITE_MAP_TILES` to a tile provider. |
+| City Guide, hotels, restaurants, cafés, nearby layers, stations | OpenStreetMap via Overpass | Names, cuisine, opening hours, website, phone, wheelchair, vegetarian, official hotel class. **No guest ratings, review counts or prices** exist in open data. Ordered by notability (Wikipedia article, heritage listing, website). |
+| Destination search | Photon (komoot) | OpenStreetMap-based search, biased to India. |
+| Destination details, addresses | Nominatim | Fair use: about one request a second; answers are cached at the edge for a week. |
+| Photos, summaries | Wikipedia / Wikimedia Commons | Credited with photographer and licence. |
+| Areas, weather, climate, currency | OpenStreetMap, Open-Meteo, Frankfurter | As before. |
+| Navigation | "Open in Google Maps" links | Plain links; no Google account or key. |
 
-### 1.2 Enable the APIs
+All answers are cached at Vercel's edge (a day for lists, a week for details and photos) so the public services
+see little traffic. To use your own instances, set `OVERPASS_URL`, `PHOTON_URL` or `NOMINATIM_URL`.
 
-**APIs & Services → Library**, enable exactly these:
+**Saved Google places.** Places added while the site used Google keep their position but show as "Saved place"
+(their names were never stored, and there's no Google account to look them up).
 
-- **Places API (New)** (not the legacy "Places API")
-- **Maps JavaScript API** (City Guide map from Phase 3; all maps from Phase 5)
-- **Routes API** (optional: only for the "Live travel times" switch in the Itinerary; off by default). If you enable
-  it, also add **Routes API** to the server key's API restrictions below.
+**You can remove** `GOOGLE_PLACES_SERVER_KEY`, `VITE_GOOGLE_MAPS_BROWSER_KEY`, `VITE_GOOGLE_MAPS_MAP_ID` and any
+`GOOGLE_DAILY_BUDGET_*` variables from Vercel; they're no longer read.
 
-### 1.3 Create and restrict the two keys
-
-**APIs & Services → Credentials → Create credentials → API key**, twice:
-
-| Key | Application restriction | API restriction | Goes in |
-| --- | --- | --- | --- |
-| Server key | **None** (Vercel functions don't have fixed IPs) | **Places API (New)** (+ **Routes API** if enabled) | `GOOGLE_PLACES_SERVER_KEY` |
-| Browser key | **Websites**: `https://trip-architect-pi.vercel.app/*`, your preview domain with a wildcard, copied from any preview URL (for example `https://trip-architect-*-<your-team>.vercel.app/*`), `http://localhost:5173/*` | **Maps JavaScript API** only | `VITE_GOOGLE_MAPS_BROWSER_KEY` |
-
-The server key is only ever used inside `/api` functions and never reaches the browser. The browser key is public by
-design; its referrer restriction is what protects it.
-
-Also create a **Map ID** (needed for the pins on Google Maps). Until you do, the app uses Google's `DEMO_MAP_ID`, which is meant for development only: **Google Maps Platform → Map management → Create map ID** (type JavaScript,
-vector) → `VITE_GOOGLE_MAPS_MAP_ID`.
-
-### 1.4 Stay at ₹0: free usage, caps and alerts
-
-Free usage per month, per SKU (India). Requests that ask for rating, review count, price level or opening hours are
-billed at the **Enterprise** SKU.
-
-| SKU (India) | Free / month | App's default daily budget | Used for |
-| --- | --- | --- | --- |
-| Autocomplete Requests | 70,000 | 2,201 | destination search box (sessions themselves are free) |
-| Place Details Essentials | 70,000 | 2,201 | destination viewport, address components |
-| Place Details Pro | 35,000 | 1,100 | names and coordinates of places saved in trips |
-| Text Search Pro | 35,000 | 1,100 | searches without ratings |
-| **Text Search Enterprise** | **7,000** | **220** | City Guide lists with ratings, reviews, price, hours |
-| **Nearby Search Enterprise** | **7,000** | **220** | map layers (restaurants, cafés…) |
-| Nearby Search Pro | 35,000 | 1,100 | ATM and pharmacy layers; nearest station and airport in the hotel comparison (2 calls) |
-| **Place Details Enterprise** | **7,000** | **220** | detail drawer (weekday hours, website, phone) |
-| **Place Details Enterprise + Atmosphere** | **7,000** | **220** | veg-friendly, editorial summary |
-| **Place Details Photos** | **7,000** | **220** | each Google photo shown |
-| Routes: Compute Routes Essentials | 70,000 | 2,201 | "Live travel times" (one call per leg of the open day) |
-| Dynamic Maps | 70,000 | (counted by Google) | each Google Map load |
-
-**How the cap works.** In Google's console, Places API (New) quotas are **per minute, per method**; there is no
-per-day setting for them. So the hard daily cap is enforced by this app: `api/_lib/budget.ts` counts every call
-per SKU per UTC day and refuses further calls once the daily budget is reached (the site then shows "Live place data
-is resting for today; showing saved and curated info"). The defaults are `floor(monthly free / 31 × 0.975)`, so even
-a 31-day month stays under the free usage. **This shared counter needs Upstash (§2)**; without it each Vercel
-function instance counts separately and the cap isn't reliable.
-
-In the console, add these safety nets as well:
-
-1. **Per-minute caps.** Google Maps Platform → **Quotas** → choose **Places API (New)** → for each method
-   (`SearchText`, `SearchNearby`, `GetPlace`, `AutocompletePlaces`, `GetPhotoMedia`; and Routes API `ComputeRoutes` if enabled) select the
-   "requests per minute" row → **Edit** → set **60**. Maps JavaScript API → map loads per minute → **100**.
-   (These limit bursts; they don't limit the day.)
-2. **Budget alert.** **Billing → Budgets & alerts → Create budget** → scope: this project → amount: **₹100** →
-   alerts at 50 %, 90 % and 100 % → email billing admins. Alerts notify you; **they don't stop charges**, which is
-   why the app-side cap exists.
-3. **Check usage weekly** for the first month: Google Maps Platform → **Metrics**.
-
-To make the app spend less than the defaults, set e.g. `GOOGLE_DAILY_BUDGET_TEXT_SEARCH_ENTERPRISE=150` in Vercel.
-Never raise a budget above the default unless you've decided to pay.
-
-### 1.5 Terms you agreed to (what the code does about them)
-
-- Only **place IDs** are stored (indefinitely allowed). Place **coordinates** are cached for at most **30 days**
-  (allowed for Places API), with `fetchedAt`, then refreshed or deleted.
-- Names, addresses, ratings, review counts, hours, photos and summaries are fetched live and held in memory only.
-- Places data shown without a Google Map carries the **Google Maps** attribution; photos credit their authors.
-- `/terms` and `/privacy` are public and link Google's terms and privacy policy, as Google requires.
-
----
-
-## 2. Upstash Redis (shared rate limits and daily Google budget)
+## 2. Upstash Redis (optional: shared rate limits)
 
 1. https://console.upstash.com/ → sign in → **Create database** → type **Redis**, region **ap-south-1 (Mumbai)**
    (closest to Vercel's `bom1`), plan **Free**.
@@ -138,11 +72,8 @@ viewer and outsider checks).
 
 ## 4. Photos (Phase 9)
 
-Destination photos come from **Google Place Photos** (your choice over Unsplash), using the same server key: no extra
-setup. `/api/places/cover` makes one Text Search Pro call and one Place Photos call per destination and the answer is
-cached at Vercel's edge for 6 hours, so a busy Explore page stays inside the 220 photos/day budget. Each photo is
-loaded from Google by the browser (never re-hosted) and credited to its photographer. When the budget is used up, the
-illustrations show instead. Unsplash is not used, so no Unsplash key is needed.
+Destination and place photos come from Wikipedia / Wikimedia Commons: no key, credited with the photographer and
+licence, loaded from Wikimedia (never re-hosted). Places without an article show the illustration instead.
 
 ## 4b. Analytics, error reports, feedback (Phase 10)
 

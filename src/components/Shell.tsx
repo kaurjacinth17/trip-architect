@@ -70,7 +70,7 @@ export function Footer() {
   return (
     <footer className="sitefoot noprint">
       <p>Costs, durations, distances and seasons are planning estimates from curated data, not live prices, timetables or bookings. Check current conditions before you travel.</p>
-      <p>Maps and place details © Google Maps. Neighbourhoods © OpenStreetMap contributors. Destination illustrations are original drawings.</p>
+      <p>Maps, places and neighbourhoods © OpenStreetMap contributors (ODbL). Photos and summaries from Wikipedia and Wikimedia Commons. Weather from Open-Meteo. Destination illustrations are original drawings.</p>
       <nav aria-label="Footer"><Link to="/about">About and FAQ</Link><Link to="/terms">Terms</Link><Link to="/privacy">Privacy</Link><Link to="/explore">Explore</Link><Link to="/trips">My trips</Link></nav>
     </footer>
   );

@@ -20,6 +20,8 @@ export interface ApiPlace {
   id: string; name: string; types: string[]; primaryType?: string; location?: { lat: number; lng: number };
   rating?: number; userRatingCount?: number; priceLevel?: number; openNow?: boolean; hours?: Period[]; wheelchair?: boolean;
   googleMapsUri?: string; areaHint?: string; address?: string; closed?: 'temporarily' | 'permanently';
+  /** OpenStreetMap extras: official hotel class, cuisines, vegetarian tag */
+  stars?: number; cuisine?: string[]; veg?: boolean;
 }
 interface Page { places: ApiPlace[]; nextPageToken?: string }
 
@@ -100,7 +102,8 @@ export function usePhotoUri(name: string | null, width: number, visible: boolean
   return useQuery({
     queryKey: ['photo', name, width],
     enabled: !!name && visible,
-    queryFn: ({ signal }) => apiGet<{ uri: string | null }>(`/api/places/photo?name=${encodeURIComponent(name!)}&w=${width}`, signal),
+    // Photos are direct Wikimedia Commons links now; nothing to look up.
+    queryFn: async ({ signal }) => (name!.startsWith('https://') ? { uri: name } : apiGet<{ uri: string | null }>(`/api/places/photo?name=${encodeURIComponent(name!)}&w=${width}`, signal)),
     staleTime: 30 * 60_000,
   });
 }

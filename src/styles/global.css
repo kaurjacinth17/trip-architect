@@ -356,3 +356,8 @@ select.who{width:auto;max-width:130px;font-size:12px;padding:2px 4px;min-height:
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 @media print{.feedback,.today{display:none}}
 .whatsnew{display:block;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}.whatsnew summary{cursor:pointer}
+/* Leaflet pins (same look as before) */
+.gpin-wrap,.alab-wrap{background:none;border:0}
+.gpin-wrap .gpin{display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);white-space:nowrap}
+.alab-wrap .alab{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap}
+.leaflet-container{font:inherit}

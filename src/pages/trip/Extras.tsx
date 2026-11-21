@@ -247,7 +247,7 @@ export function EmergencyCard({ t, di = 0 }: { t: Trip; di?: number }) {
               {stay.gid ? <>
                 <p>{en.data?.address || (en.isLoading ? 'Loading…' : 'Address unavailable')}</p>
                 {lang !== 'en' && <p lang={lang}>{local.data?.address || (local.isLoading ? 'Loading…' : '')}</p>}
-                <span className="tiny muted">Address from Google Maps{lang !== 'en' ? `, in English and ${LANG_NAME[lang]}` : ''}.</span>
+                <span className="tiny muted">Address from OpenStreetMap{lang !== 'en' ? `, in English and ${LANG_NAME[lang]}` : ''}.</span>
               </> : <p>{stay.area}{stay.notes ? ` · ${stay.notes}` : ''}</p>}
             </div>
           )}

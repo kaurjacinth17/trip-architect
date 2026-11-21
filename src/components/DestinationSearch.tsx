@@ -77,7 +77,7 @@ export function DestinationSearch({ onPick, label = 'Search any destination', pl
             onMouseDown={(e) => { e.preventDefault(); setCustom(true); setOpen(false); }}>
             <b>Can’t find it? Add “{q.trim()}” as a custom place</b><span className="tiny muted">Name it and drop a pin on the map</span>
           </li>
-          {live && items.some((s) => s.kind === 'google') && <li className="gattr" aria-hidden="true"><span translate="no">Google Maps</span></li>}
+          {live && items.some((s) => s.kind === 'google') && <li className="gattr" aria-hidden="true"><span>© OpenStreetMap</span></li>}
         </ul>
       )}
       {busy && <p className="tiny muted" role="status">Loading destination…</p>}

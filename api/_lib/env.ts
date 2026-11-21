@@ -21,8 +21,8 @@ export const env = {
 /** Which providers are configured. Booleans only. */
 export function configured() {
   return {
-    googlePlaces: !!env.googlePlacesKey(),
-    unsplash: !!env.unsplashKey(),
+    /** OpenStreetMap, Photon, Nominatim and Wikipedia: no key needed */
+    places: true,
     supabase: !!(env.supabaseUrl() && env.supabaseAnonKey()),
     upstash: !!(env.upstashUrl() && env.upstashToken()),
   };

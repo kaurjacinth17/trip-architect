@@ -76,11 +76,11 @@ export function Stays({ t }: TabProps) {
 
       <section className="sec">
         <h2>Saved stays</h2>
-        <p className="tiny muted" style={{ marginTop: 6 }}>Ratings, reviews and websites come live from Google. Room prices aren’t published there, so type the price you’re quoted; the Stay line in your budget follows automatically (booked stays first, then your stay for each night, then the cheapest shortlisted option).</p>
+        <p className="tiny muted" style={{ marginTop: 6 }}>Addresses, websites and official hotel class come from OpenStreetMap. Room prices aren’t published there, so type the price you’re quoted; the Stay line in your budget follows automatically (booked stays first, then your stay for each night, then the cheapest shortlisted option).</p>
         {t.stays.length ? (
           <div className="scroll" style={{ marginTop: 12 }}>
             <table className="stack">
-              <thead><tr><th>Stay</th><th>Nights</th><th className="n">Your price per night</th><th className="n">Rooms</th><th className="n">Total</th><th className="n">To your plans</th><th className="n">Google rating</th><th>Status</th><th><span className="vh">Actions</span></th></tr></thead>
+              <thead><tr><th>Stay</th><th>Nights</th><th className="n">Your price per night</th><th className="n">Rooms</th><th className="n">Total</th><th className="n">To your plans</th><th className="n">Hotel class</th><th>Status</th><th><span className="vh">Actions</span></th></tr></thead>
               <tbody>
                 {t.stays.map((s) => {
                   const v = avg(s, s.dest);
@@ -111,7 +111,7 @@ export function Stays({ t }: TabProps) {
                       </td>
                       <td className="n"><b>{s.price ? inr(s.price * s.nights * rm) : '—'}</b></td>
                       <td className="n">{v != null ? v.toFixed(1) + ' km' : '—'}</td>
-                      <td className="n">{s.gid ? <HotelLive gid={s.gid}>{(d) => (d?.rating != null ? <span title="Google rating">★ {d.rating.toFixed(1)}<br /><span className="tiny muted">{(d.reviews || 0).toLocaleString('en-IN')} reviews</span></span> : '—')}</HotelLive> : s.rating ? `${s.rating}/5 (yours)` : '—'}</td>
+                      <td className="n">{s.gid ? <HotelLive gid={s.gid}>{(d) => (d?.stars ? <span title="Official hotel class, from OpenStreetMap">{'★'.repeat(Math.round(d.stars))}</span> : '—')}</HotelLive> : s.rating ? `${s.rating}/5 (yours)` : '—'}</td>
                       <td>
                         <select value={s.status} aria-label={`Booking status for ${s.name}`} style={{ minWidth: 130 }} onChange={(e) => mut(t.id, (tt) => { const x = tt.stays.find((y) => y.id === s.id); if (!x) return false; x.status = e.target.value as StayStatus; })}>
                           {(['idea', 'shortlisted', 'booked'] as const).map((x) => <option key={x} value={x}>{x[0].toUpperCase() + x.slice(1)}</option>)}
@@ -133,7 +133,7 @@ export function Stays({ t }: TabProps) {
 
       <HotelFinder t={t} />
       <details className="sec card">
-      <summary><b>Add a stay by hand</b> <span className="small muted">(homestays and places not on Google Maps)</span></summary>
+      <summary><b>Add a stay by hand</b> <span className="small muted">(homestays and places not on the map)</span></summary>
       <form className="grid" style={{ gap: 12, marginTop: 10 }} onSubmit={(e) => { e.preventDefault(); addStay(); }}>
         <div className="grid g3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))' }}>
           <label className="f">Name<input type="text" placeholder="Hotel or homestay" value={f.name} onChange={(e) => upd({ name: e.target.value })} /></label>

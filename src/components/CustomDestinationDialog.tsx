@@ -16,7 +16,7 @@ export default function CustomDestinationDialog({ initialName, onClose, onCreate
   return (
     <Modal title="Add a custom place" onClose={onClose} wide>
       <h2>Add a custom place</h2>
-      <p className="small muted">For somewhere Google doesn’t list. It works in every part of the planner; there are just no ratings or live suggestions.</p>
+      <p className="small muted">For somewhere the search doesn’t find. It works in every part of the planner; there are just no ratings or live suggestions.</p>
       <div className="grid g3" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))' }}>
         <label className="f">Name<input type="text" value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label className="f">Kind of place<select value={type} onChange={(e) => setType(e.target.value as DestType)}>{Object.entries(DEST_TYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>

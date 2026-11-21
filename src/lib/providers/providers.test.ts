@@ -41,8 +41,8 @@ describe('checkHealth', () => {
     await checkHealth(async () => new Response('<html>', { status: 404 }));
     expect(useLiveStatus.getState().state).toBe('unconfigured');
   });
-  it('detects a resting daily budget', async () => {
-    await checkHealth(async () => new Response(JSON.stringify({ providers: { googlePlaces: true, unsplash: false, supabase: false, upstash: true }, resting: ['textSearchEnterprise'] })));
-    expect(useLiveStatus.getState().state).toBe('resting');
+  it('open data is live without any key', async () => {
+    await checkHealth(async () => new Response(JSON.stringify({ providers: { places: true, supabase: false, upstash: false } })));
+    expect(useLiveStatus.getState().state).toBe('live');
   });
 });

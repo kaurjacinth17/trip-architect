@@ -1,39 +1,25 @@
-// POST /api/places/nearby  { layer, center, radius }  Map layers for the visible area, only when a layer is switched
-// on or "Search this area" is tapped. Restaurants, cafés and attractions use Nearby Search Enterprise (ratings,
-// price, open now); ATMs and pharmacies use Nearby Search Pro (no ratings needed).
+// POST /api/places/nearby  { layer, center, radius }  Map layers from OpenStreetMap: restaurants, cafés, attractions,
+// ATMs, pharmacies and hospitals around the visible area. Edge-cached for a day.
 import { z } from 'zod';
 import { dedupe } from '../../_lib/dedupe.js';
-import { googlePlaces } from '../../_lib/google.js';
 import { handler, json, readJson } from '../../_lib/http.js';
-import { LatLngSchema, MASKS, mapPlace, type GPlace } from '../../_lib/places.js';
+import { aroundQuery, mapList, overpass } from '../../_lib/osm.js';
+import { LatLngSchema } from '../../_lib/places.js';
+import { edgeCache } from '../../_lib/upstream.js';
 
-export const LAYERS = {
-  restaurants: { types: ['restaurant'], rich: true },
-  cafes: { types: ['cafe', 'coffee_shop'], rich: true },
-  attractions: { types: ['tourist_attraction'], rich: true },
-  atms: { types: ['atm'], rich: false },
-  pharmacies: { types: ['pharmacy'], rich: false },
-  hospitals: { types: ['hospital'], rich: false },
-} as const;
+export const LAYERS = { restaurants: 'restaurants', cafes: 'cafes', attractions: 'attractions', atms: 'atms', pharmacies: 'pharmacies', hospitals: 'hospitals' } as const;
 
 const Body = z.object({
   layer: z.enum(Object.keys(LAYERS) as [keyof typeof LAYERS, ...(keyof typeof LAYERS)[]]),
   center: LatLngSchema,
   radius: z.number().min(100).max(10_000),
 });
-
-const r4 = (n: number) => Math.round(n * 1e3) / 1e3;
+const r3 = (n: number) => Math.round(n * 1e3) / 1e3;
 
 export const POST = handler({ methods: ['POST'], rateLimit: { bucket: 'nearby', limit: 30, windowSec: 60 } }, async (request) => {
   const b = Body.parse(await readJson(request));
-  const L = LAYERS[b.layer];
-  const body = {
-    includedTypes: L.types, maxResultCount: 20, rankPreference: 'POPULARITY', languageCode: 'en',
-    locationRestriction: { circle: { center: { latitude: b.center.lat, longitude: b.center.lng }, radius: Math.round(b.radius) } },
-  };
-  const key = `nb:${b.layer}:${r4(b.center.lat)},${r4(b.center.lng)}:${Math.round(b.radius / 100)}`;
-  const r = await dedupe(key, () => googlePlaces<{ places?: GPlace[] }>({
-    path: 'places:searchNearby', body, fieldMask: L.rich ? MASKS.nearby : MASKS.nearbyBasic, sku: L.rich ? 'nearbySearchEnterprise' : 'nearbySearchPro',
-  }));
-  return json({ places: (r.places || []).map(mapPlace) });
+  const named = b.layer !== 'atms';
+  const key = `nb:${b.layer}:${r3(b.center.lat)},${r3(b.center.lng)}:${Math.round(b.radius / 100)}`;
+  const places = await dedupe(key, async () => mapList(await overpass(aroundQuery([LAYERS[b.layer]], b.center, b.radius, { named, limit: 120 }))).slice(0, 40));
+  return json({ places }, { cache: edgeCache(86400) });
 });

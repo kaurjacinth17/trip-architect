@@ -143,7 +143,7 @@ describe('/api/health', () => {
     const r = await health(req('/api/health'));
     const text = await r.text();
     expect(r.status).toBe(200);
-    expect(JSON.parse(text).providers).toEqual({ googlePlaces: true, unsplash: true, supabase: false, upstash: false });
+    expect(JSON.parse(text).providers).toEqual({ places: true, supabase: false, upstash: false });
     expect(text).not.toContain(SECRET);
     expect(text).not.toContain('unsplash-secret');
     delete process.env.UNSPLASH_ACCESS_KEY;

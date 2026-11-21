@@ -53,7 +53,7 @@ export function pickLunches(plan: Day[], destKey: string, restaurants: LivePlace
     if (!best) continue;
     used.add(best.r.id);
     const meal = items[li];
-    Object.assign(meal, { gid: best.r.id, t: '', lat: best.r.location!.lat, lng: best.r.location!.lng, coordsFetchedAt: Date.now() });
+    Object.assign(meal, { gid: best.r.id, t: best.r.id.startsWith('osm-') ? best.r.name : '', lat: best.r.location!.lat, lng: best.r.location!.lng, coordsFetchedAt: Date.now() });
     n++;
   }
   return n;
@@ -77,7 +77,7 @@ export function ensureDest(t: Trip, key: string, record?: DestRecord) {
 export function itemFromLive(p: LivePlace, destKey: string, meal?: MealKind): Item {
   const { cat, duration } = categorise(p.primaryType, p.types);
   return customItem({
-    gid: p.id, t: '', cat: meal ? 'meal' : cat, d: meal ? MEALS[meal].dur : duration, c: 0,
+    gid: p.id, t: p.id.startsWith('osm-') ? p.name : '', cat: meal ? 'meal' : cat, d: meal ? MEALS[meal].dur : duration, c: 0,
     lat: p.location?.lat ?? null, lng: p.location?.lng ?? null, coordsFetchedAt: p.location ? Date.now() : undefined,
     dest: destKey, pri: 'nice',
   });
@@ -97,7 +97,7 @@ export function addLiveToDay(t: Trip, p: LivePlace, opts: { destKey: string; rec
 export function stayFromLive(t: Trip, p: LivePlace, destKey: string, record?: DestRecord): Stay {
   ensureDest(t, destKey, record);
   const s: Stay = {
-    id: uid(), name: '', gid: p.id, area: '', dest: destKey, lat: p.location?.lat ?? null, lng: p.location?.lng ?? null,
+    id: uid(), name: p.id.startsWith('osm-') ? p.name : '', gid: p.id, area: (p as { areaHint?: string }).areaHint || '', dest: destKey, lat: p.location?.lat ?? null, lng: p.location?.lng ?? null,
     coordsFetchedAt: p.location ? Date.now() : undefined, price: 0, nights: Math.max(1, t.plan.length - 1), checkin: t.start,
     checkout: '', rating: 0, link: '', notes: '', status: 'shortlisted',
   };

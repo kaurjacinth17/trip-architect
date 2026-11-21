@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             react: ['react', 'react-dom', 'react-router-dom'],
-            gmaps: ['@vis.gl/react-google-maps'],
+            maps: ['leaflet'],
           },
         },
       },

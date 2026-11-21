@@ -28,7 +28,6 @@ import { toGuidePlace, type ApiPlace } from '../../lib/guide';
 import { StayPrompt } from './StayPrompt';
 
 const DetailDrawer = lazy(() => import('../guide/CityGuide').then((m) => ({ default: m.DetailDrawer })));
-const OverviewMap = lazy(() => import('../../components/OverviewMap'));
 
 const LAYERS: [keyof MapLayers, string][] = [['plan', 'Planned'], ['wish', 'Wishlist'], ['lib', 'All guide places'], ['stay', 'Stays'], ['area', 'Areas']];
 type Nearby = 'restaurants' | 'cafes' | 'attractions' | 'atms' | 'pharmacies';
@@ -120,11 +119,11 @@ export default function TripMap({ t, goDay }: TabProps) {
       <div className="row" style={{ gap: 6, marginBottom: 10 }} role="group" aria-label="Nearby">
         <span className="small muted">Nearby</span>
         {NEARBY.map(([k, l, col]) => (
-          <button key={k} type="button" className={'chip' + (layers.includes(k) ? ' on' : '')} aria-pressed={layers.includes(k)} onClick={() => (live ? toggleLayer(k) : toast('Live places aren’t available on this site right now (Google key missing or today’s free limit reached). The rest of the map still works.'))}>
+          <button key={k} type="button" className={'chip' + (layers.includes(k) ? ' on' : '')} aria-pressed={layers.includes(k)} onClick={() => (live ? toggleLayer(k) : toast('Live places aren’t available right now. The rest of the map still works.'))}>
             <i className="dot" style={{ color: col, opacity: 1 }} />{l}
           </button>
         ))}
-        {!live && <span className="tiny muted">Live places aren’t available right now (check the Google key in Vercel).</span>}
+        {!live && <span className="tiny muted">Live places aren’t available right now.</span>}
       </div>
       {layers.some((l) => NEARBY.find((n) => n[0] === l)![3]) && (
         <div className="row" style={{ gap: 6, marginBottom: 10 }} role="group" aria-label="Nearby filters">
@@ -141,7 +140,7 @@ export default function TripMap({ t, goDay }: TabProps) {
             ? <GMap label={`Map of ${t.name}`} pins={allPins} routes={L.plan ? data.routes : []} areas={data.areas} fitTo={data.fitTo} active={pin} onPick={(id) => set({ pin: id })} onView={setView}>
                 {layers.length > 0 && moved && <button type="button" className="btn sm pri searcharea" onClick={() => setArea(view)}>Search this area</button>}
               </GMap>
-            : <MapFallback pins={data.pts} onPick={(id) => set({ pin: id })} note="Maps need a Google Maps key on this site. Here are the day’s stops instead." />}
+            : <MapFallback pins={data.pts} onPick={(id) => set({ pin: id })} />}
         </div>
         <div className="grid" style={{ gap: 12, alignContent: 'start' }}>
           <Navigate t={t} di={di} mode={mode} setMode={setMode} />
@@ -149,15 +148,10 @@ export default function TripMap({ t, goDay }: TabProps) {
           {layers.length > 0 && <NearbyList t={t} di={di} list={nearby} loading={nearbyQ.some((q) => q.isLoading)} ref0={ref} onShow={(id) => set({ pin: 'n:' + id })} onOpen={setOpen} />}
           <div className="card small">
             <b>Reading the map</b>
-            <p className="muted" style={{ marginTop: 6 }}>Dashed lines join each day’s stops in order. Shaded circles are neighbourhoods. Nearby places are searched only when you switch a layer on or tap “Search this area”.</p>
+            <p className="muted" style={{ marginTop: 6 }}>Dashed lines join each day’s stops in order. Shaded circles are neighbourhoods. Nearby places come from OpenStreetMap when you switch a layer on or tap “Search this area”.</p>
           </div>
         </div>
       </div>
-      <section className="sec">
-        <h2>Overview map</h2>
-        <p className="tiny muted" style={{ marginTop: 4 }}>A quick picture of the whole trip on OpenStreetMap: hand-picked guide places, your own pins and hotels you typed in, coloured by day. Places added from Google appear only on the Google map above, as Google’s terms require.</p>
-        <Suspense fallback={<p className="small muted">Loading map…</p>}><OverviewMap t={t} /></Suspense>
-      </section>
       {open && (
         <Suspense fallback={null}>
           <DetailDrawer p={toGuidePlace(open as unknown as ApiPlace, 0)} tab={open.layer === 'restaurants' ? 'restaurants' : open.layer === 'cafes' ? 'cafes' : 'famous'} badges={{ mustSee: false, hiddenGem: false, editorsPick: false }} trip={t}

@@ -18,10 +18,10 @@ export function Terms() {
       <p>Trip Architect is a free planning tool. By using it you agree to these terms.</p>
       <h2>Planning estimates, not bookings</h2>
       <p>Costs, durations, travel times, seasons, weather and exchange rates are estimates to help you plan. They are not live prices, timetables, availability or advice. Trip Architect doesn’t sell or book anything and never processes payments. “Pay via UPI” links only open your own payment app; you confirm any payment there.</p>
-      <h2>Google Maps</h2>
-      <p>Maps and place information (names, ratings, opening hours, photos and similar) come from Google Maps. By using features powered by Google Maps you agree to the <Ext href="https://maps.google.com/help/terms_maps/">Google Maps/Google Earth Additional Terms of Service</Ext> and the <Ext href="https://policies.google.com/privacy">Google Privacy Policy</Ext>. Place details are shown live and are not stored by Trip Architect, except Google place IDs, which identify places in your trips.</p>
+      <h2>Maps and place data</h2>
+      <p>Maps, places, hotels, restaurants and neighbourhoods come from <Ext href="https://www.openstreetmap.org/copyright">OpenStreetMap</Ext> (© OpenStreetMap contributors, ODbL), found with <Ext href="https://photon.komoot.io/">Photon</Ext> and <Ext href="https://nominatim.org/">Nominatim</Ext>. Open data has no star ratings or reviews, and it can be incomplete or out of date: check opening hours and details before you go. “Open in Google Maps” buttons are plain links to Google Maps.</p>
       <h2>Other sources</h2>
-      <p>Neighbourhoods: © <Ext href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</Ext> (ODbL). Destination overviews: <Ext href="https://www.wikipedia.org/">Wikipedia</Ext> (CC BY-SA), linked on each page. Weather and climate: <Ext href="https://open-meteo.com/">Open-Meteo</Ext> (CC BY 4.0). Exchange rates: <Ext href="https://frankfurter.dev/">Frankfurter</Ext> (European Central Bank reference rates). Photos: <Ext href="https://unsplash.com/">Unsplash</Ext> and Google Maps, credited to their authors.</p>
+      <p>Neighbourhoods: © <Ext href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</Ext> (ODbL). Destination overviews: <Ext href="https://www.wikipedia.org/">Wikipedia</Ext> (CC BY-SA), linked on each page. Weather and climate: <Ext href="https://open-meteo.com/">Open-Meteo</Ext> (CC BY 4.0). Exchange rates: <Ext href="https://frankfurter.dev/">Frankfurter</Ext> (European Central Bank reference rates). Photos: <Ext href="https://commons.wikimedia.org/">Wikimedia Commons</Ext>, credited to their authors with their licences.</p>
       <h2>Your content</h2>
       <p>You own what you write in your trips. Don’t use Trip Architect to store anything unlawful, or to copy or harvest data from it in bulk. If you share a trip, anyone with the link can see what you shared.</p>
       <h2>Availability</h2>
@@ -42,8 +42,8 @@ export function Privacy() {
       <p>Your trips are stored only in this browser (local storage). They are not sent to us unless you create a share link (the trip travels inside the link) or sign in.</p>
       <h2>With an account</h2>
       <p>If you sign in, your profile (name, picture, and optionally a UPI ID or phone number you choose to share with your trip members), your trips, expenses and any receipts or tickets you upload are stored with <Ext href="https://supabase.com/privacy">Supabase</Ext>, our database and authentication provider. People you invite to a trip can see that trip. You can delete trips, and ask us to delete your account.</p>
-      <h2>Google Maps</h2>
-      <p>Maps, place search and place details are provided by Google Maps Platform. When you use them, your browser or our server sends your search text, the area you’re looking at and technical data to Google, and Google may set cookies on map views. Google’s processing is covered by the <Ext href="https://policies.google.com/privacy">Google Privacy Policy</Ext>.</p>
+      <h2>Maps and place search</h2>
+      <p>Map images load from OpenStreetMap’s tile servers, which receive your IP address and the area you’re viewing (<Ext href="https://osmfoundation.org/wiki/Privacy_Policy">OSMF privacy policy</Ext>). Place searches go through our server to Photon, Nominatim, Overpass and Wikipedia, which see our server’s address and the search text, not yours. “Open in Google Maps” links take you to Google, under the <Ext href="https://policies.google.com/privacy">Google Privacy Policy</Ext>.</p>
       <h2>Other services</h2>
       <ul>
         <li><b>Vercel</b> hosts the site and its functions, and processes request logs (including IP addresses).</li>

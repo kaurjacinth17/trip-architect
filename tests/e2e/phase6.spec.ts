@@ -26,8 +26,7 @@ test('Jodhpur: Hotels 4.5+ in one area → compare 2 → set one as the stay for
   await page.getByRole('region', { name: 'Hotel comparison' }).getByRole('button', { name: 'Compare 2' }).click();
   const cmp = page.getByRole('dialog', { name: 'Compare hotels' });
   await expect(cmp.getByRole('columnheader', { name: 'Haveli Alpha (fixture)' })).toBeVisible();
-  await expect(cmp.getByRole('row', { name: /Google rating/ })).toContainText('★ 4.6');
-  await expect(cmp.getByRole('row', { name: /Google rating/ })).toContainText('★ 4.8');
+  await expect(cmp.getByRole('row', { name: /Hotel class/ })).toContainText('Not listed'); // official class, when OpenStreetMap has it; no guest ratings
   await expect(cmp.getByRole('row', { name: /Railway station/ })).toContainText('Junction station (fixture)');
   await expect(cmp.getByRole('row', { name: /Airport/ })).toContainText('Airport (fixture)');
   await expect(cmp.getByRole('row', { name: /Your price per night/ })).toContainText('Not saved yet');
@@ -73,7 +72,7 @@ test('Jodhpur: Hotels 4.5+ in one area → compare 2 → set one as the stay for
   await expect(stayRow).toContainText('Auto');
 
   const stored = await page.evaluate(() => localStorage.getItem('trip-architect-v1') || '');
-  expect(stored).toContain('ChIJTESThotelalpha00001');
-  expect(stored).not.toContain('Haveli Alpha');
+  expect(stored).toContain('osm-N900009');
+  expect(stored).toContain('Haveli Alpha'); // OpenStreetMap names may be stored (ODbL)
   expect(errors).toEqual([]);
 });

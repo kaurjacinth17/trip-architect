@@ -14,10 +14,10 @@ test('Explore lists 30+ more places across India; a card opens its live guide', 
   const card = page.locator('.dcard', { has: page.getByRole('heading', { name: 'Jodhpur', exact: true }) });
   await card.scrollIntoViewIfNeeded();
   await card.getByRole('button', { name: 'Details and plan' }).click();
-  await expect(page).toHaveURL(/\/destinations\/g:ChIJTESTjodhpur0000000001$/);
+  await expect(page).toHaveURL(/\/destinations\/g:osm-R900001$/);
 });
 
-test('itinerary asks where you are staying, and the map has clickable nearby places and an overview map', async ({ page }) => {
+test('itinerary asks where you are staying, and the map is OpenStreetMap', async ({ page }) => {
   await mockApi(page);
   await page.goto('/trips/sample-jaipur/stays');
   // remove the sample's stays so no hotel is known
@@ -26,6 +26,5 @@ test('itinerary asks where you are staying, and the map has clickable nearby pla
   await expect(page.getByText('Where are you staying in Jaipur?')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Find a hotel' })).toHaveAttribute('href', /\/destinations\/jaipur\/guide\?tab=hotels&trip=sample-jaipur/);
   await page.goto('/trips/sample-jaipur/map');
-  await expect(page.getByRole('heading', { name: 'Overview map' })).toBeVisible();
-  await expect(page.getByRole('img', { name: /Overview map of/ })).toBeVisible();
+  await expect(page.locator('.leaflet-container')).toBeVisible(); // the main map is OpenStreetMap now
 });

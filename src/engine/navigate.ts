@@ -2,6 +2,8 @@
 // waypoints, but only three in mobile browsers, so long days are split into several consecutive links that share
 // their end/start stop. Place IDs are passed alongside coordinates, as the Maps URLs docs require.
 export type TravelMode = 'driving' | 'walking' | 'transit' | 'bicycling' | 'two-wheeler';
+/** Google Maps directions accept Google place IDs only; OpenStreetMap IDs are left out (coordinates are used). */
+const gp = (id?: string) => (id && !id.startsWith('osm-') ? id : undefined);
 export interface NavStop { lat: number; lng: number; placeId?: string; label?: string }
 export interface NavLink { url: string; from: number; to: number }
 
@@ -19,11 +21,11 @@ export function navLinks(stops: NavStop[], mode: TravelMode = 'driving', platfor
     if (chunk.length < 2) break;
     const o = chunk[0], d = chunk[chunk.length - 1], w = chunk.slice(1, -1);
     const p = new URLSearchParams({ api: '1', origin: ll(o), destination: ll(d), travelmode: mode === 'two-wheeler' ? 'two-wheeler' : mode });
-    if (o.placeId) p.set('origin_place_id', o.placeId);
-    if (d.placeId) p.set('destination_place_id', d.placeId);
+    if (gp(o.placeId)) p.set('origin_place_id', o.placeId!);
+    if (gp(d.placeId)) p.set('destination_place_id', d.placeId!);
     if (w.length) {
       p.set('waypoints', w.map(ll).join('|'));
-      if (w.every((x) => x.placeId)) p.set('waypoint_place_ids', w.map((x) => x.placeId).join('|'));
+      if (w.every((x) => gp(x.placeId))) p.set('waypoint_place_ids', w.map((x) => x.placeId).join('|'));
     }
     out.push({ url: 'https://www.google.com/maps/dir/?' + p.toString(), from: start, to: start + chunk.length - 1 });
   }

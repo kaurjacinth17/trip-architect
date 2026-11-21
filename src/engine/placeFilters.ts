@@ -10,6 +10,8 @@ export interface GuidePlace {
   primaryType?: string;
   location?: { lat: number; lng: number };
   rating?: number;
+  /** OpenStreetMap extras */
+  veg?: boolean; stars?: number; cuisine?: string[];
   userRatingCount?: number;
   priceLevel?: number;
   openNow?: boolean;
@@ -50,9 +52,9 @@ export function applyFilters(list: GuidePlace[], f: GuideFilters, ctx: FilterCtx
     if (f.minReviews && !((p.userRatingCount ?? 0) >= f.minReviews)) return false;
     if (f.price?.length && (p.priceLevel == null || !f.price.includes(p.priceLevel))) return false;
     if (f.areas?.length && !f.areas.some((a) => a === p.foundIn || a === p.areaHint)) return false;
-    if (f.open === 'now' && p.openNow !== true) return false;
+    if (f.open === 'now' && (p.openNow ?? (p.hours ? isOpenAt(p.hours, new Date().getDay(), new Date().getHours() * 60 + new Date().getMinutes()) : null)) !== true) return false;
     if (f.open && f.open !== 'now' && !(p.hours && isOpenAt(p.hours, f.open.weekday, f.open.minute))) return false;
-    if (f.veg && ctx.veg?.[p.id] !== true) return false;
+    if (f.veg && (ctx.veg?.[p.id] ?? p.veg) !== true) return false;
     if (f.wheelchair && p.wheelchair !== true) return false;
     if (q && !p.name.toLowerCase().includes(q) && !(p.areaHint || '').toLowerCase().includes(q)) return false;
     return true;

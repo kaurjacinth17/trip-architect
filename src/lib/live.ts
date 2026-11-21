@@ -81,7 +81,7 @@ export function useAreas(v: DestView | null, enabled = true) {
   });
 }
 
-export interface LiveListPlace extends LivePlace { rating?: number; userRatingCount?: number; priceLevel?: number; openNow?: boolean; googleMapsUri?: string; areaHint?: string; address?: string }
+export interface LiveListPlace extends LivePlace { stars?: number; cuisine?: string[]; veg?: boolean; rating?: number; userRatingCount?: number; priceLevel?: number; openNow?: boolean; googleMapsUri?: string; areaHint?: string; address?: string }
 
 export function searchBody(v: DestView, tab: string, extra: Record<string, unknown> = {}) {
   return { tab, destName: v.name, center: v.center, ...(v.record?.viewport ? { viewport: v.record.viewport } : {}), ...extra };
@@ -135,7 +135,8 @@ export function useRates(enabled: boolean) {
 }
 
 /** Google place IDs used anywhere in a trip. */
-export const tripGids = (t: Trip) => [...new Set([...t.plan.flatMap((d) => d.items), ...t.wish, ...t.stays].map((x) => x.gid).filter(Boolean) as string[])];
+/** OpenStreetMap places whose name or coordinates still need looking up (names are normally stored with the item). */
+export const tripGids = (t: Trip) => [...new Set([...t.plan.flatMap((d) => d.items.map((x) => ({ id: x.gid, need: !x.t || x.lat == null }))), ...t.wish.map((x) => ({ id: x.gid, need: !x.t || x.lat == null })), ...t.stays.map((s) => ({ id: s.gid, need: !s.name || s.lat == null }))].filter((x) => x.id?.startsWith('osm-') && x.need).map((x) => x.id!))];
 
 export interface Cover { id: string | null; uri: string | null; author: { name: string; uri: string | null } | null; mapsUri?: string | null }
 /** A destination's Google place ID and one photo (edge-cached server-side; held in memory here). */

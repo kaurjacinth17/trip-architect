@@ -27,9 +27,12 @@ test('map: Restaurants layer → add a café to Day 1 → Navigate link is built
   expect(new URL((await nav.getAttribute('href'))!).searchParams.get('travelmode')).toBe('walking');
 });
 
-test('without a Maps key the map tab still lists the day’s stops with Google Maps links', async ({ page }) => {
+test('the map needs no key: OpenStreetMap with credit, pins and Navigate links', async ({ page }) => {
+  await page.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ status: 200, contentType: 'image/png', body: '' }));
   await mockApi(page);
   await page.goto('/trips/sample-jaipur/map');
-  await expect(page.getByText('Maps need a Google Maps key on this site.')).toBeVisible();
-  await expect(page.locator('.mapfb li').first()).toContainText('Google Maps');
+  await expect(page.locator('.leaflet-container')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'OpenStreetMap' }).first()).toBeVisible();
+  await expect(page.getByText('Maps need a Google Maps key on this site.')).toHaveCount(0);
+  await expect(page.locator('.gpin-wrap').first()).toBeVisible();
 });

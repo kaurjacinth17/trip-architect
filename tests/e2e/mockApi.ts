@@ -9,6 +9,8 @@ export interface MockOptions { quota?: boolean; unconfigured?: boolean }
 
 export async function mockApi(page: Page, opts: MockOptions = {}) {
   const calls: string[] = [];
+  // OpenStreetMap tiles: a blank image, so maps render offline and deterministically
+  await page.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64') }));
   const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
@@ -40,7 +42,7 @@ export async function mockApi(page: Page, opts: MockOptions = {}) {
     if (p === '/api/places/photo') return json(route, { uri: null });
     if (p === '/api/places/cover') {
       const q = (url.searchParams.get('q') || '').toLowerCase();
-      return json(route, { id: q.startsWith('jodhpur') ? 'ChIJTESTjodhpur0000000001' : null, uri: null, author: null });
+      return json(route, { id: q.startsWith('jodhpur') ? 'osm-R900001' : null, uri: null, author: null });
     }
     if (p === '/api/places/nearby') {
       const b = route.request().postDataJSON() as { layer: string; center: { lat: number; lng: number } };
@@ -63,7 +65,7 @@ export async function mockApi(page: Page, opts: MockOptions = {}) {
       const b = route.request().postDataJSON() as { legs: { key: string }[] };
       return json(route, { legs: Object.fromEntries(b.legs.map((l) => [l.key, { minutes: 17, meters: 4000 }])) });
     }
-    if (/^\/api\/places\/ChIJ/.test(p)) {
+    if (/^\/api\/places\/osm-/.test(p)) {
       const id = decodeURIComponent(p.split('/').pop()!);
       const all = Object.values(googleSearch).flatMap((x) => x.places) as GPlace[];
       const m = all.find((x) => x.id === id);

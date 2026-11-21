@@ -194,7 +194,7 @@ function PlacesTab({ v, record, trip, state, set }: { v: DestView; record?: Dest
       {state.inArea && (
         <div className="banner"><span className="small"><b>{GUIDE_TABS.find(([k]) => k === tab)![1]} in {state.inArea}</b></span><button type="button" className="btn sm" onClick={() => set({ inArea: undefined })}>Whole of {v.name}</button></div>
       )}
-      <Filters v={v} trip={trip} state={state} set={set} areaNames={[...new Set([...runAreas.map((a) => a.name), ...raw.map((p) => p.areaHint).filter(Boolean) as string[]])].sort()} tab={tab} />
+      <Filters v={v} trip={trip} state={state} set={set} rated={raw.some((p) => p.rating != null)} areaNames={[...new Set([...runAreas.map((a) => a.name), ...raw.map((p) => p.areaHint).filter(Boolean) as string[]])].sort()} tab={tab} />
 
       <div className="row between" style={{ margin: '14px 0 8px' }}>
         <p className="small" aria-live="polite">
@@ -234,7 +234,7 @@ function PlacesTab({ v, record, trip, state, set }: { v: DestView; record?: Dest
             <div style={{ padding: 8 }}><button type="button" className="btn" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>{list.isFetchingNextPage ? 'Loading…' : 'Load more'}</button></div>
           )}
           {!list.hasNextPage && raw.length >= 60 && !r && <p className="tiny muted" style={{ padding: 8 }}>Google returns up to 60 results per search. {runAreas.length > 1 ? 'Search all areas for more.' : ''}</p>}
-          <p className="tiny muted" style={{ padding: '4px 8px' }}>Ratings and reviews come from Google Maps. Google doesn’t verify reviews but removes fake content when it finds it.</p>
+          <p className="tiny muted" style={{ padding: '4px 8px' }}>Places from OpenStreetMap, ordered by how notable they are (a Wikipedia article, heritage listing, official website). Open data has no star ratings or reviews.</p>
         </div>
         {hasGoogleMaps() && (
           <div className="guide-map">
@@ -268,7 +268,7 @@ function PlacesTab({ v, record, trip, state, set }: { v: DestView; record?: Dest
 
 const itemForWish = (p: GuidePlace, destKey: string) => {
   const { cat, duration } = categorise(p.primaryType, p.types);
-  return { id: crypto.randomUUID().slice(0, 8), pid: null, gid: p.id, t: '', cat, s: 540, d: duration, c: 0, lat: p.location?.lat ?? null, lng: p.location?.lng ?? null, coordsFetchedAt: p.location ? Date.now() : undefined, area: '', dest: destKey, pri: 'nice' as const, n: '', done: false };
+  return { id: crypto.randomUUID().slice(0, 8), pid: null, gid: p.id, t: p.id.startsWith('osm-') ? p.name : '', cat, s: 540, d: duration, c: 0, lat: p.location?.lat ?? null, lng: p.location?.lng ?? null, coordsFetchedAt: p.location ? Date.now() : undefined, area: '', dest: destKey, pri: 'nice' as const, n: '', done: false };
 };
 
 function useAreaNames(v: DestView) {
@@ -297,7 +297,7 @@ function AllAreasButton({ n, label, done, onRun }: { n: number; label: string; d
 
 /* ------------------------------------------------------------------------------------------ filters */
 
-function Filters({ trip, state, set, areaNames, tab }: { v: DestView; trip: Trip | null; state: GuideState; set: (p: Partial<GuideState> & { filters?: Partial<GuideState['filters']> }) => void; areaNames: string[]; tab: GuideTab }) {
+function Filters({ trip, state, set, areaNames, tab, rated }: { rated: boolean; v: DestView; trip: Trip | null; state: GuideState; set: (p: Partial<GuideState> & { filters?: Partial<GuideState['filters']> }) => void; areaNames: string[]; tab: GuideTab }) {
   const f = state.filters;
   const [aq, setAq] = useState('');
   const [q, setQ] = useState(f.q || '');
@@ -313,12 +313,13 @@ function Filters({ trip, state, set, areaNames, tab }: { v: DestView; trip: Trip
       <div className="row" style={{ gap: 8 }}>
         <input type="search" placeholder={`Search within ${GUIDE_TABS.find(([k]) => k === tab)![1].toLowerCase()}`} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search within this tab" style={{ flex: '2 1 220px' }} />
         <label className="row small" style={{ gap: 6, fontWeight: 600, flex: '1 1 200px' }}>Sort
-          <select value={state.sort} onChange={(e) => set({ sort: e.target.value as SortKey })}>{SORTS.map(([k, l]) => <option key={k} value={k} disabled={(k === 'nearDay' && state.day == null) || (k === 'nearHotel' && !trip?.stays.some((s) => s.lat != null))}>{l}</option>)}</select>
+          <select value={state.sort} onChange={(e) => set({ sort: e.target.value as SortKey })}>{SORTS.filter(([k]) => rated || !['rating', 'reviews', 'price'].includes(k)).map(([k, l]) => <option key={k} value={k} disabled={(k === 'nearDay' && state.day == null) || (k === 'nearHotel' && !trip?.stays.some((s) => s.lat != null))}>{l}</option>)}</select>
         </label>
       </div>
       <details open={wide || undefined} className="fdetails">
       <summary className="small"><b>Filters</b>{active ? ` (${active} active)` : ''}</summary>
       <div className="grid" style={{ gap: 10, marginTop: 10 }}>
+      {rated && <>
       <div className="row" style={{ gap: 6 }} role="group" aria-label="Minimum rating">
         <span className="small muted">Rating</span>
         {chip(!f.minRating, 'Any', () => set({ filters: { minRating: undefined } }))}
@@ -333,6 +334,7 @@ function Filters({ trip, state, set, areaNames, tab }: { v: DestView; trip: Trip
         <span className="small muted">Price</span>
         {[1, 2, 3, 4].map((x) => chip(!!f.price?.includes(x), PRICE[x], () => set({ filters: { price: f.price?.includes(x) ? f.price.filter((y) => y !== x) : [...(f.price || []), x] } })))}
       </div>
+      </>}
       <div className="row" style={{ gap: 6 }}>
         {chip(f.open === 'now', 'Open now', () => set({ filters: { open: f.open === 'now' ? undefined : 'now', openDay: undefined } }))}
         {trip?.start && (
@@ -392,6 +394,9 @@ function PlaceCard({ p, n, tab, badges, dist, distFrom, active, onHover, onOpen,
         </div>
         <div className="mt">
           {CATS[cat][0]}
+          {p.stars ? ` · ${'★'.repeat(Math.round(p.stars))} hotel class` : ''}
+          {p.cuisine?.length ? ` · ${p.cuisine.join(', ')}` : ''}
+          {p.veg === true && ' · Vegetarian options'}
           {p.rating != null && <> · <span aria-label={`Rated ${p.rating} out of 5 from ${p.userRatingCount} reviews`}>★ {p.rating.toFixed(1)} ({(p.userRatingCount || 0).toLocaleString('en-IN')})</span></>}
           {p.priceLevel != null && ` · ${PRICE[p.priceLevel]}`}
           {p.areaHint && ` · ${p.areaHint}`}
@@ -428,8 +433,7 @@ function CompareHotels({ v, trip, hotels, onClose, onStay }: { v: DestView; trip
   };
   const saved = (p: GuidePlace) => trip?.stays.find((s) => s.gid === p.id);
   const rows: [string, (p: GuidePlace) => React.ReactNode][] = [
-    ['Google rating', (p) => (p.rating != null ? `★ ${p.rating.toFixed(1)}` : '—')],
-    ['Reviews', (p) => (p.userRatingCount != null ? p.userRatingCount.toLocaleString('en-IN') : '—')],
+    ['Hotel class', (p) => (p.stars ? `${'★'.repeat(Math.round(p.stars))} (official)` : 'Not listed')],
     ['Area', (p) => p.areaHint || '—'],
     ['Distance to your plan', (p) => { const d = toPlan(p); return d != null ? `${fmtDist(d)} on average` : p.location && v.center ? `${fmtDist(km(p.location, v.center)!)} from the centre` : '—'; }],
     ['Railway station', (p) => nearest(p, tq.data?.stations)],
@@ -450,7 +454,7 @@ function CompareHotels({ v, trip, hotels, onClose, onStay }: { v: DestView; trip
           </tbody>
         </table>
       </div>
-      <p className="tiny muted">Ratings and reviews from Google Maps. Distances are straight-line. Room prices aren’t published on Google: type the price you’re quoted in the Stays tab.</p>
+      <p className="tiny muted">Hotel details from OpenStreetMap (no guest ratings in open data). Distances are straight-line. Type the price you’re quoted in the Stays tab.</p>
       <div className="row"><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
     </Modal>
   );
@@ -480,7 +484,7 @@ function GooglePhoto({ ph, alt }: { ph: PlacePhoto; alt: string }) {
     <figure className="gphoto" ref={ref} style={{ aspectRatio: ratio }}>
       {q.data?.uri ? <img src={q.data.uri} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" /> : <span className="tiny muted">{vis ? (q.isError ? 'Photo unavailable' : 'Loading photo…') : ''}</span>}
       {q.data?.uri && ph.authors[0] && (
-        <figcaption className="tiny">Photo: {ph.authors[0].uri ? <a href={ph.authors[0].uri} target="_blank" rel="noopener noreferrer">{ph.authors[0].name}</a> : ph.authors[0].name}{ph.googleMapsUri && <> · <a href={ph.googleMapsUri} target="_blank" rel="noopener noreferrer">View on Google Maps</a></>}</figcaption>
+        <figcaption className="tiny">Photo: {ph.authors[0].uri ? <a href={ph.authors[0].uri} target="_blank" rel="noopener noreferrer">{ph.authors[0].name}</a> : ph.authors[0].name}{ph.googleMapsUri && <> · <a href={ph.googleMapsUri} target="_blank" rel="noopener noreferrer">Source</a></>}</figcaption>
       )}
     </figure>
   );
@@ -512,7 +516,7 @@ export function DetailDrawer({ p, tab, badges, trip, onClose, onVeg, onAction }:
           {d.weekdayHours && (
             <div><b className="small">Opening hours</b><ul className="small" style={{ margin: '6px 0 0', paddingLeft: 18 }}>{d.weekdayHours.map((h) => <li key={h}>{h}</li>)}</ul></div>
           )}
-          {d.googleMapsUri && <p className="small"><a href={d.googleMapsUri} target="_blank" rel="noopener noreferrer">View on Google Maps</a></p>}
+          {d.googleMapsUri && <p className="small"><a href={d.googleMapsUri} target="_blank" rel="noopener noreferrer">Open in Google Maps</a> · <a href={`https://www.openstreetmap.org/${({ N: 'node', W: 'way', R: 'relation' } as Record<string, string>)[p.id.slice(4, 5)] || 'node'}/${p.id.slice(5)}`} target="_blank" rel="noopener noreferrer">OpenStreetMap</a></p>}
         </div>
       )}
       <div className="row">
