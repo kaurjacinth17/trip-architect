@@ -17,6 +17,9 @@ import { useUI } from '../../store/ui';
 import { Overview } from './Overview';
 import { Budget } from './Budget';
 import { Expenses } from './expenses/Expenses';
+import { Together } from './Together';
+import { PresenceBar } from '../../components/cloud/Social';
+import { track } from '../../lib/cloud/sync';
 import { Stays } from './Stays';
 import { Packing } from './Packing';
 import { Share } from './Share';
@@ -24,7 +27,7 @@ import { Share } from './Share';
 const Studio = lazy(() => import('./Studio'));
 const TripMap = lazy(() => import('./TripMap'));
 
-export const TABS = [['overview', 'Overview'], ['itinerary', 'Itinerary'], ['map', 'Map'], ['budget', 'Budget'], ['expenses', 'Expenses'], ['stays', 'Stays'], ['packing', 'Packing'], ['share', 'Share']] as const;
+export const TABS = [['overview', 'Overview'], ['itinerary', 'Itinerary'], ['map', 'Map'], ['budget', 'Budget'], ['expenses', 'Expenses'], ['stays', 'Stays'], ['packing', 'Packing'], ['share', 'Share'], ['together', 'Together']] as const;
 export type TabKey = (typeof TABS)[number][0];
 
 export interface TabProps {
@@ -45,6 +48,8 @@ export default function TripPage() {
   useTitle(t ? t.name : 'Not found');
   useEffect(() => { if (t) enterTrip(t.id); }, [t, enterTrip]);
   const ui = useUI();
+  const cloud = !!t?.cloud;
+  useEffect(() => { if (cloud) void track(id, { day: tab === 'itinerary' ? ui.day : null }); }, [cloud, id, tab, ui.day]);
   const ctx = useCheckCtx(t, { day: ui.day, itinerary: tab === 'itinerary', liveTravel: ui.liveTravel });
   const A = useMemo(() => (t ? analyzeTrip(t, ctx) : null), [t, ctx]);
   if (!t || !A) return <Missing />;
@@ -65,6 +70,7 @@ export default function TripPage() {
         <Link className="small" to="/trips">← My trips</Link>
         <div className="row" style={{ gap: 6 }}>
           <button type="button" className="btn sm" onClick={() => undoTrip(t.id)} disabled={!canUndo} title="Undo (Ctrl+Z)">Undo</button>
+          <PresenceBar t={t} />
           <Link className="btn sm" to={`/trips/${t.id}/print`}>Print view</Link>
         </div>
       </div>
@@ -77,7 +83,7 @@ export default function TripPage() {
         </p>
       </div>
       <nav className="tabs" aria-label="Trip sections">
-        {TABS.map(([k, l]) => (
+        {TABS.filter(([k]) => k !== 'together' || t.cloud).map(([k, l]) => (
           <Link key={k} to={`/trips/${t.id}/${k}`} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined}>
             {l}
             {k === 'itinerary' && dalerts > 0 && <span className="cnt" aria-label={`${dalerts} alerts`}>{dalerts}</span>}
@@ -94,6 +100,7 @@ export default function TripPage() {
         {tab === 'stays' && <Stays {...props} />}
         {tab === 'packing' && <Packing {...props} />}
         {tab === 'share' && <Share {...props} />}
+        {tab === 'together' && <Together {...props} />}
       </Suspense>
     </>
   );

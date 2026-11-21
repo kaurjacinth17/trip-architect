@@ -1,6 +1,9 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTrips, tripList } from '../store/trips';
 import { Icon, Logo, type IconName } from './Icon';
+import { AccountButton } from './cloud/Account';
+import { cloudConfigured } from '../lib/cloud/client';
+import { useAuth } from '../store/auth';
 
 const NAV: [string, string, IconName, (p: string) => boolean][] = [
   ['/', 'Home', 'home', (p) => p === '/'],
@@ -42,9 +45,15 @@ export function Sidebar() {
           </NavLink>
         )) : <p className="tiny" style={{ padding: '0 10px', opacity: 0.75 }}>No trips yet.</p>}
       </nav>
-      <p className="tiny note">Trips are saved in this browser. Use Share → Download trip file to back up.</p>
+      <div style={{ padding: '0 10px' }}><AccountButton /></div>
+      <SaveNote />
     </aside>
   );
+}
+
+function SaveNote() {
+  const user = useAuth((s) => s.user);
+  return <p className="tiny note">{cloudConfigured() && user ? 'Trips in your account sync across devices; guest trips stay in this browser.' : 'Trips are saved in this browser. Use Share → Download trip file to back up.'}</p>;
 }
 
 export function Topbar() {
@@ -52,6 +61,7 @@ export function Topbar() {
     <header className="top">
       <Link className="brand" to="/"><Logo size={28} /><b>Trip Architect</b></Link>
       <Nav label="Main (compact)" />
+      <AccountButton compact />
     </header>
   );
 }

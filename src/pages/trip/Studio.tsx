@@ -33,6 +33,7 @@ import { isOpenAt } from '../../engine/hours';
 import type { CheckCtx } from '../../engine/checks';
 import type { OpenTest } from '../../engine/schedule';
 import { changeDays } from './Overview';
+import { CommentsButton, useEditingBy, VoteButtons } from '../../components/cloud/Social';
 import type { TabProps } from './TripPage';
 
 type DragKind = 'item' | 'lib' | 'wish' | 'day';
@@ -219,6 +220,7 @@ function Block({ t, x, flagged, ind, onEdit, selected, selectMode, onSelect }: {
   const cat = CATS[x.cat] || CATS.custom;
   const p = x.pid ? PL[x.pid] : undefined;
   const stayName = x.stayRef ? t.stays.find((s) => s.id === x.stayRef!.id)?.name : undefined;
+  const editing = useEditingBy(t.id, x.id);
   const drag = useDraggable({ id: 'item:' + x.id, data: { k: 'item', id: x.id, title: x.t, col: cat[1] } satisfies DragData });
   const drop = useDroppable({ id: 'blk:' + x.id, data: { kind: 'blk', id: x.id } satisfies DropData });
   const over = ind.over === 'blk:' + x.id && !drag.isDragging;
@@ -241,7 +243,8 @@ function Block({ t, x, flagged, ind, onEdit, selected, selectMode, onSelect }: {
       ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el); }}
       {...drag.listeners}
       className={['blk', x.done && 'done', flagged && 'flag-a', drag.isDragging && 'dragging', over && (ind.before ? 'over-top' : 'over-bot'), selected && 'sel'].filter(Boolean).join(' ')}
-      style={{ '--c': cat[1] } as React.CSSProperties}
+      style={{ '--c': cat[1], ...(editing ? { outline: `2px solid ${editing.color}`, outlineOffset: 2 } : {}) } as React.CSSProperties}
+      title={editing ? `${editing.name} is editing this` : undefined}
       data-id={x.id}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button,a,input,select,textarea')) return;
@@ -276,6 +279,7 @@ function Block({ t, x, flagged, ind, onEdit, selected, selectMode, onSelect }: {
         <button type="button" aria-label={`Move ${x.t} down`} disabled={!!x.locked} onClick={() => nudge(1)}>↓</button>
         <button type="button" aria-pressed={!!x.locked} aria-label={x.locked ? `Unlock ${x.t}` : `Lock ${x.t}'s time`} onClick={() => act((tt) => { const f = findItem(tt, x.id); if (!f) return false; f.x.locked = !f.x.locked || undefined; }, x.locked ? 'Unlocked' : 'Time locked')}>{x.locked ? 'Unlock' : 'Lock'}</button>
         <button type="button" aria-label={`Edit ${x.t}`} onClick={onEdit}>Edit</button>
+        <CommentsButton t={t} kind="item" id={x.id} label={x.t} />
         <button type="button" aria-label={`Delete ${x.t}`} style={{ color: 'var(--alert)' }} onClick={() => act((tt) => { if (!pullItem(tt, x.id)) return false; }, 'Activity deleted', true)}>Delete</button>
       </div>
     </div>
@@ -467,6 +471,7 @@ function WishItem({ t, x, di }: { t: Trip; x: Item; di: number }) {
         <div className="mt">{CATS[x.cat]?.[0] || 'Custom'} · {hm(x.d)}{x.c ? ' · ' + inr(x.c) : ''}{x.area ? ' · ' + x.area : ''}</div>
       </div>
       <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
+        <VoteButtons t={t} kind="wish" id={x.id} label={x.t} />
         <button type="button" className="btn sm icon" aria-label={`Remove ${x.t} from wishlist`} onClick={() => mut(t.id, (tt) => { tt.wish = tt.wish.filter((w) => w.id !== x.id); }, 'Removed from wishlist', true)}>×</button>
         <button type="button" className="btn sm pri" onClick={add}>Add to Day {di + 1}</button>
       </div>

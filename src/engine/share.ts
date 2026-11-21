@@ -85,7 +85,7 @@ export function printDocument(t: Trip): string {
  * live when the trip is opened.
  */
 function portable(t: Trip): Trip {
-  const { sample: _s, touched: _t, ...rest } = stripGoogleCoords(t);
+  const { sample: _s, touched: _t, cloud: _c, ...rest } = stripGoogleCoords(t);
   return rest as Trip;
 }
 

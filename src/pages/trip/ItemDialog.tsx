@@ -17,6 +17,9 @@ import { apiPost } from '../../lib/api';
 import { searchBody, type LiveListPlace } from '../../lib/live';
 import { useLiveStatus } from '../../lib/liveStatus';
 import { useUI } from '../../store/ui';
+import { useEditingBy } from '../../components/cloud/Social';
+import { track } from '../../lib/cloud/sync';
+import { useEffect } from 'react';
 
 type Link = { pid: string | null; gid?: string; lat: number | null; lng: number | null; name: string };
 
@@ -119,11 +122,18 @@ export function ItemDialog({ t, x, di, isNew, onClose }: { t: Trip; x: Item; di:
   };
   const toWish = () => { onClose(); mut(t.id, (tt) => { const g = pullItem(tt, x.id); if (!g) return false; tt.wish.push({ ...g.x, locked: undefined }); }, 'Moved to wishlist', true); };
 
+  const other = useEditingBy(t.id, x.id);
+  useEffect(() => {
+    if (!t.cloud || isNew) return;
+    void track(t.id, { editing: x.id });
+    return () => { void track(t.id, { editing: null }); };
+  }, [t.cloud, t.id, x.id, isNew]);
   const title = isNew ? 'Add a custom activity' : 'Edit activity';
   return (
     <Modal title={title} onClose={onClose} wide>
       <form className="grid" style={{ gap: 14 }} onSubmit={(e) => { e.preventDefault(); save(); }}>
         <h2>{title}</h2>
+        {other && <div className="warn caution" role="status"><b>{other.name} is editing this block right now</b><p>If you both save, you’ll be asked which changes to keep.</p></div>}
         <label className="f">Title<input type="text" value={f.t} placeholder={link.gid ? link.name || 'Shows the place’s current name' : ''} onChange={(e) => upd({ t: e.target.value })} /></label>
 
         <div className="card grid" style={{ gap: 6, padding: 12 }}>

@@ -18,6 +18,7 @@ import { CommitInput } from '../../../components/Inputs';
 import { toast } from '../../../store/toast';
 import type { TabProps } from '../TripPage';
 import { ExpenseForm } from './ExpenseForm';
+import { CommentsButton } from '../../../components/cloud/Social';
 
 const P = (paise: number) => inr(rupees(paise));
 const exact = (paise: number) => '₹' + rupees(paise).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -191,6 +192,7 @@ function Row({ t, e, person, onEdit, onHist, onSettle }: { t: Trip; e: Expense; 
       <div className="row" style={{ gap: 4, flexWrap: 'nowrap', alignItems: 'start' }}>
         <span className="n" style={{ textAlign: 'right' }}><b>{exact(a.inrTotal)}</b>{e.cur && e.cur !== 'INR' && <><br /><span className="tiny muted">{money(e.amt, e.cur)}</span></>}</span>
         <button type="button" className="btn sm" onClick={onEdit} aria-label={`Edit ${e.note || 'expense'}`}>Edit</button>
+        <CommentsButton t={t} kind="expense" id={e.id} label={e.note || 'expense'} />
         {s.debtors.length > 0 && <button type="button" className="btn sm" onClick={onSettle} aria-label={`Settle ${e.note || 'expense'}`}>{s.done ? 'Settled' : 'Settle'}</button>}
         <button type="button" className="btn sm ghost" aria-label={`Delete expense ${e.note || inr(e.amt)}`} onClick={() => mut(t.id, (tt) => { deleteExpense(tt, e.id); }, 'Expense deleted', true)}>Delete</button>
       </div>

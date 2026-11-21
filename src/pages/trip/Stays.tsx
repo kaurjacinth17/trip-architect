@@ -13,6 +13,7 @@ import { inr, plural, sum, uid } from '../../engine/util';
 import { mut } from '../../lib/actions';
 import { toast } from '../../store/toast';
 import type { TabProps } from './TripPage';
+import { CommentsButton, VoteButtons } from '../../components/cloud/Social';
 
 export function Stays({ t }: TabProps) {
   const items = t.plan.flatMap((d) => d.items).filter((x) => x.lat != null && x.lng != null && isAct(x));
@@ -123,6 +124,8 @@ export function Stays({ t }: TabProps) {
                         </select>
                       </td>
                       <td>
+                        {s.status === 'shortlisted' && <VoteButtons t={t} kind="stay" id={s.id} label={s.name} />}
+                        <CommentsButton t={t} kind="stay" id={s.id} label={s.name} />
                         <button type="button" className="btn sm ghost" aria-label={`Delete ${s.name}`} onClick={() => mut(t.id, (tt) => { removeStay(tt, s.id); }, 'Stay deleted', true)}>Delete</button>
                       </td>
                     </tr>

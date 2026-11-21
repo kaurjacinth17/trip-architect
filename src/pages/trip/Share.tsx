@@ -4,6 +4,7 @@ import { exportJSON, printDocument, SHARE_WARN_LENGTH, shareText, shareURL, spen
 import { slug } from '../../engine/util';
 import { copyText, downloadFile } from '../../lib/browser';
 import type { TabProps } from './TripPage';
+import { People } from './People';
 
 export function Share({ t }: TabProps) {
   const [link, setLink] = useState<string | null>(null);
@@ -11,6 +12,7 @@ export function Share({ t }: TabProps) {
   return (
     <div className="grid g2" style={{ alignItems: 'start' }}>
       <div className="grid" style={{ gap: 14 }}>
+        <People t={t} />
         <div className="card grid" style={{ gap: 10 }}>
           <h3>Send the itinerary on WhatsApp</h3>
           <p className="small muted">Formatted text with each day’s times, ready to paste into a chat.</p>

@@ -45,6 +45,10 @@ interface TripsState {
   refresh: (id: string, fn: (t: Trip) => void) => void;
 }
 
+/** Viewers of a shared trip can't edit it (they can still comment and vote). */
+let readOnlyNotice = () => {};
+export const setReadOnlyNotice = (fn: () => void) => { readOnlyNotice = fn; };
+
 function stamp(t: Trip) {
   t.updated = Date.now();
   if (t.sample) t.touched = true;
@@ -142,6 +146,7 @@ export const useTrips = create<TripsState>()(
       mutate(id, fn) {
         const cur = get().trips[id];
         if (!cur) return false;
+        if (cur.cloud?.role === 'viewer') { readOnlyNotice(); return false; }
         const t = clone(cur);
         const r = fn(t);
         if (r === false || r === null) return r;

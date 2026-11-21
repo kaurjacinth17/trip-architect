@@ -11,12 +11,15 @@ import { Trips } from './pages/Trips';
 import { About } from './pages/About';
 import { Privacy, Terms } from './pages/Legal';
 import { LiveDataBanner } from './components/LiveDataBanner';
+import { cloudConfigured } from './lib/cloud/client';
 
 const Destination = lazy(() => import('./pages/Destination'));
 const CityGuide = lazy(() => import('./pages/guide/CityGuide'));
 const TripPage = lazy(() => import('./pages/trip/TripPage'));
 const Print = lazy(() => import('./pages/Print'));
 const Shared = lazy(() => import('./pages/Shared'));
+const Join = lazy(() => import('./pages/Join'));
+const CloudBoot = lazy(() => import('./components/cloud/Account').then((m) => ({ default: m.CloudBoot })));
 
 /** Reference behaviour: scroll to top when the page (not just the tab) changes. */
 function useScrollReset() {
@@ -60,6 +63,7 @@ export function App() {
   return (
     <>
       <a className="skip" href="#main">Skip to content</a>
+      {cloudConfigured() && <Suspense fallback={null}><CloudBoot /></Suspense>}
       <div className="app">
         <Sidebar />
         <div>
@@ -79,6 +83,7 @@ export function App() {
                 <Route path="/trips/:id/print" element={<Print />} />
                 <Route path="/trips/:id/:tab" element={<TripPage />} />
                 <Route path="/shared" element={<Shared />} />
+                <Route path="/join/:token" element={<Join />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />

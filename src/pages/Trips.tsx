@@ -4,6 +4,7 @@ import { TripCard } from '../components/Cards';
 import { useTitle } from '../lib/hooks';
 import { toast } from '../store/toast';
 import { tripList, useTrips } from '../store/trips';
+import { MoveTripsBanner } from '../components/cloud/MoveTrips';
 
 export function Trips() {
   useTitle('My trips');
@@ -25,6 +26,7 @@ export function Trips() {
   return (
     <>
       <div className="row between"><h1>My trips</h1><Link className="btn pri" to="/new">Create a new trip</Link></div>
+      <MoveTripsBanner />
       <div className="grid auto" style={{ marginTop: 20 }}>
         {ts.length ? ts.map((t) => <TripCard key={t.id} t={t} />) : <div className="empty">No trips yet.</div>}
       </div>

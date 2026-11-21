@@ -195,3 +195,35 @@ Judgement calls made while implementing the upgrade, so they can be reviewed:
 - **Migration (schema v4):** trips gain `payments: []`. Existing expenses are left exactly as they were and are read
   as single payer, equal split, unsettled; they gain payers/split fields only when edited.
 - The Budget tab keeps the categories and the spending chart and links to Expenses.
+
+### Phase 8 notes
+
+- **Off unless configured.** Without `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` nothing changes: no sign-in
+  button, and the Supabase library isn't even downloaded. Guest mode is unchanged with or without keys.
+- **Sign-in:** Google or an email magic link. After sign-in, My trips offers "Move my trips to my account" (each trip
+  gets a new id and is uploaded; the browser copy is replaced by the account copy).
+- **Schema** (`supabase/migrations/20261121000001_init.sql`): profiles, trips, trip_members (owner/editor/viewer),
+  invites, destinations + trip_destinations, days, items (position, version, updated_by, locked), stays, pack_items
+  (assigned_to, shared), expenses + expense_payers + expense_shares (settled_at, settlement_id) + settlements, comments,
+  polls, poll_options, votes, activity_log (field diffs written by triggers). RLS on every table, explicit GRANTs.
+  Contact details of other members are only readable through `trip_people()`, which hides them unless shared.
+  Bookings come with Phase 10.
+- **Server checks:** invites (create, redeem) and role changes run in `api/invites/*` and `api/members/update` with
+  the service-role key; members can't add themselves or change roles directly (RLS forbids it).
+- **Sync:** the local store stays the working copy, so every page works the same. Each change is diffed into row
+  writes and pushed about 0.35 s later (optimistic). Rows carry a `version`; a write against an old version changes
+  nothing, the app re-reads the row, merges fields that don't overlap, and otherwise shows "Riya just changed this:
+  Keep theirs / Keep mine / Merge fields". If a save fails, the trip goes back to what the server has and a message
+  says so. Other people's changes arrive by Realtime and are merged with any edits you haven't saved yet.
+- **Presence:** avatars of who has the trip open (and which day they're on), a coloured outline on blocks someone is
+  editing, and a "Riya is editing this block" notice in the edit dialog (a soft lock: you can still save).
+- **Comments** on blocks, stays and expenses with @mentions (first name) and resolve; **votes** on wishlist items and
+  shortlisted stays; **polls** (wishlist items, stays or free text, optional close time) whose winner becomes a block
+  or the stay in one click; **activity feed** filterable by person, Undo for your own changes and Restore for deleted
+  blocks (owners). Viewers are read-only but can comment and vote.
+- **Receipts:** the storage bucket and its policies exist; uploading from the expense form is not wired yet (Phase 10
+  bookings vault adds file uploads).
+- **Verified here:** the migration and 28 RLS checks against a local Postgres 16 with a stand-in for Supabase's auth
+  schema (`npm run test:sql`); API functions with mocked Supabase; Trip ⇄ row mapping, diffing and merging (unit).
+  **Not verified here:** a real Supabase project (auth redirects, Realtime delivery, two people editing live). The
+  two-browser Playwright test runs only when `E2E_SUPABASE=1` and a configured preview are available.

@@ -114,10 +114,25 @@ Never raise a budget above the default unless you've decided to pay.
    Google provider page).
 4. **Authentication → URL configuration**: Site URL `https://trip-architect-pi.vercel.app`; add redirect URLs for
    `http://localhost:5173/**` and your preview domain (for example `https://trip-architect-*-<your-team>.vercel.app/**`).
-5. The schema is applied from `supabase/migrations` (added in Phase 8; the README will give the exact command).
-6. **Free projects pause after a week without activity.** Phase 8 adds a daily Vercel cron (`/api/cron/keepalive`)
-   that queries the database once a day to prevent this. Vercel's Hobby plan allows cron jobs once per day, which is
-   enough.
+5. **Apply the schema.** Supabase dashboard → **SQL Editor** → **New query** → paste the whole of
+   `supabase/migrations/20261121000001_init.sql` → **Run**. (Or, with the Supabase CLI: `supabase link` then
+   `supabase db push`.) It creates the tables, Row Level Security policies, GRANTs, triggers, the Realtime publication
+   and a private `receipts` storage bucket (5 MB, images and PDFs).
+6. **Free projects pause after a week without activity.** `vercel.json` schedules `/api/cron/keepalive` daily at
+   03:17 UTC. It queries the database (keeping it awake) and also clears Google coordinates older than 30 days from
+   the database. In Vercel → Settings → Environment Variables add `CRON_SECRET` (any long random string); Vercel sends
+   it to the job automatically. Hobby plans allow one run a day, which is enough.
+7. Add the three Supabase variables in Vercel for **Production and Preview**, then redeploy. Without them the site
+   stays in guest mode exactly as before (no sign-in button).
+
+**What the database stores:** your profile (name, picture, and a UPI ID and phone only if you add them; they're shown
+to people in your trips only if you tick "show"), trips, members, invites (a hash of each link's token, never the
+token), the plan, stays, packing, expenses, settlements, comments, polls, votes and an activity log. Google places are
+stored as place IDs plus coordinates with their fetch time (cleared after 30 days), never names, ratings or photos.
+
+**Testing the policies locally (optional):** with a local Postgres 15+ and the usual `PG*` variables set,
+`npm run test:sql` applies the migration to a scratch database and runs `tests/sql/rls.test.sql` (owner, editor,
+viewer and outsider checks).
 
 ---
 

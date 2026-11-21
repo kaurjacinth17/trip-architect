@@ -436,7 +436,7 @@ export function spendSummary(t: Trip) {
 /* ------------------------------------------------------------------------------------------------ UPI */
 
 /** UPI ID shape (handle@bank); the app never checks it with a bank. */
-export const UPI_RE = /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,63}$/;
+export const UPI_RE = /^[a-zA-Z0-9._-]{2,64}@[a-zA-Z][a-zA-Z0-9.-]{1,63}$/;
 
 /** `upi://pay` deep link (opens a UPI app on a phone). The app never processes the payment. */
 export function upiLink(o: { pa: string; pn: string; am: number; tn: string }): string {

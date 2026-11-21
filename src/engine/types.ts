@@ -222,6 +222,10 @@ export interface PackItem {
   qty: number;
   done: boolean;
   custom?: boolean;
+  /** Traveller index this item is assigned to (Phase 10 per-person packing) */
+  assignedTo?: number;
+  /** One for the group (e.g. a first-aid kit), not per person */
+  shared?: boolean;
 }
 
 export type Budget = Record<BudgetKey, number>;
@@ -248,6 +252,8 @@ export interface Trip {
   travelerUpi?: (string | null)[];
   /** Which traveller is using this device (for the edit history); guests choose it in Expenses */
   me?: number;
+  /** Set for trips stored in a signed-in account (Supabase); your role in it */
+  cloud?: { role: 'owner' | 'editor' | 'viewer' };
   stays: Stay[];
   pack: PackItem[];
   notes: string;
